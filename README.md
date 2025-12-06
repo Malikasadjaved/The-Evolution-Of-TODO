@@ -1,6 +1,6 @@
 # Python CLI Todo Application
 
-[![Tests](https://img.shields.io/badge/tests-140%20passing-brightgreen)](https://github.com/Malikasadjaved/Python-Todo-Cli-App)
+[![Tests](https://img.shields.io/badge/tests-158%20passing-brightgreen)](https://github.com/Malikasadjaved/Python-Todo-Cli-App)
 [![Coverage](https://img.shields.io/badge/coverage-51%25-yellow)](https://github.com/Malikasadjaved/Python-Todo-Cli-App)
 [![Python](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -8,7 +8,7 @@
 
 A feature-rich command-line todo application built with **Test-Driven Development (TDD)** and **Spec-Driven Development (SDD)**, featuring three-tier progressive architecture: Primary (CRUD), Intermediate (Organization), and Advanced (Automation).
 
-> **🎯 Hackathon Project:** Built with rigorous software engineering practices - 140 comprehensive tests, clean architecture, and professional-grade code quality.
+> **🎯 Hackathon Project:** Built with rigorous software engineering practices - 158 comprehensive tests, clean architecture, and professional-grade code quality.
 
 ## Features
 
@@ -231,7 +231,7 @@ To-do-app/
 
 ## Test Coverage
 
-**Total Tests:** 140 passing ✅
+**Total Tests:** 158 passing ✅
 
 **Coverage by Module:**
 - `storage.py`: 100% - Core CRUD operations
@@ -250,8 +250,8 @@ The CLI layer has lower coverage as it's the interactive presentation layer. All
 
 **PRODUCTION READY** 🎉
 
-✅ 14 features complete (12 original + 2 UX enhancements)
-✅ 140 tests passing
+✅ 15 features complete (12 original + 3 UX enhancements)
+✅ 158 tests passing
 ✅ Code formatted with black
 ✅ Flake8 compliant
 ✅ Type-hinted
