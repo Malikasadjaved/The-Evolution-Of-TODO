@@ -79,21 +79,20 @@ def display_menu() -> None:
     print(f"  {Fore.GREEN}2.{Style.RESET_ALL} View All Tasks")
     print(f"  {Fore.GREEN}3.{Style.RESET_ALL} Update Task")
     print(f"  {Fore.GREEN}4.{Style.RESET_ALL} Delete Task")
-    print(f"  {Fore.GREEN}5.{Style.RESET_ALL} Mark Task Complete")
-    print(f"  {Fore.GREEN}6.{Style.RESET_ALL} Mark Task Incomplete")
+    print(f"  {Fore.GREEN}5.{Style.RESET_ALL} Status Mark (Complete/Incomplete)")
 
     print(f"\n{Style.BRIGHT}INTERMEDIATE TIER - Organization{Style.RESET_ALL}")
-    print(f"  {Fore.YELLOW}7.{Style.RESET_ALL} Search Tasks")
-    print(f"  {Fore.YELLOW}8.{Style.RESET_ALL} Filter Tasks")
-    print(f"  {Fore.YELLOW}9.{Style.RESET_ALL} Sort Tasks")
+    print(f"  {Fore.YELLOW}6.{Style.RESET_ALL} Search Tasks")
+    print(f"  {Fore.YELLOW}7.{Style.RESET_ALL} Filter Tasks")
+    print(f"  {Fore.YELLOW}8.{Style.RESET_ALL} Sort Tasks")
 
     print(f"\n{Style.BRIGHT}ADVANCED TIER - Automation{Style.RESET_ALL}")
     print(
-        f"  {Fore.RED}10.{Style.RESET_ALL} Recurring Tasks "
+        f"  {Fore.RED}9.{Style.RESET_ALL} Recurring Tasks "
         f"(Automatic - set via Add/Update)"
     )
     print(
-        f"  {Fore.RED}11.{Style.RESET_ALL} Reminders "
+        f"  {Fore.RED}10.{Style.RESET_ALL} Reminders "
         f"(Automatic - set via Add/Update)"
     )
 
@@ -181,6 +180,135 @@ def select_recurrence() -> Optional[RecurrencePattern]:
     else:
         print(f"{Fore.RED}Invalid choice. Skipping recurrence.{Style.RESET_ALL}")
         return None
+
+
+def select_status_action() -> str:
+    """Display status mark submenu and get user choice.
+
+    Returns:
+        Action string: "complete", "incomplete", or "back"
+    """
+    print(f"\n{Style.BRIGHT}{'='*60}")
+    print(f"{Fore.CYAN}{Style.BRIGHT}STATUS MARK SUBMENU")
+    print(f"{Style.BRIGHT}{'='*60}{Style.RESET_ALL}\n")
+    print(f"  {Fore.GREEN}A.{Style.RESET_ALL} Mark Task Complete")
+    print(f"  {Fore.YELLOW}B.{Style.RESET_ALL} Mark Task Incomplete")
+    print(f"  {Fore.WHITE}0.{Style.RESET_ALL} Back to Main Menu\n")
+
+    choice = get_input("Enter choice (A/B/0): ", required=False)
+
+    # Default to back if empty
+    if not choice:
+        return "back"
+
+    # Convert to uppercase for comparison
+    choice = choice.upper()
+
+    action_map = {
+        "A": "complete",
+        "B": "incomplete",
+        "0": "back",
+    }
+
+    if choice in action_map:
+        return action_map[choice]
+    else:
+        print(f"{Fore.RED}Invalid choice. Returning to main menu.{Style.RESET_ALL}")
+        return "back"
+
+
+def select_filter_status() -> str:
+    """Display filter status selection menu and get user choice.
+
+    Returns:
+        Status filter: "complete", "incomplete", or "all"
+    """
+    print(f"\n{Fore.CYAN}Filter by Status:{Style.RESET_ALL}")
+    print("  1. Complete")
+    print("  2. Incomplete")
+    print("  3. All (default)")
+
+    choice = get_input("Enter choice (1-3) [3]: ", required=False)
+
+    # Default to all if empty
+    if not choice:
+        return "all"
+
+    status_map = {
+        "1": "complete",
+        "2": "incomplete",
+        "3": "all",
+    }
+
+    if choice in status_map:
+        return status_map[choice]
+    else:
+        print(f"{Fore.RED}Invalid choice. Using 'all'.{Style.RESET_ALL}")
+        return "all"
+
+
+def select_filter_priority() -> str:
+    """Display filter priority selection menu and get user choice.
+
+    Returns:
+        Priority filter: "HIGH", "MEDIUM", "LOW", or "all"
+    """
+    print(f"\n{Fore.CYAN}Filter by Priority:{Style.RESET_ALL}")
+    print("  1. HIGH")
+    print("  2. MEDIUM")
+    print("  3. LOW")
+    print("  4. All (default)")
+
+    choice = get_input("Enter choice (1-4) [4]: ", required=False)
+
+    # Default to all if empty
+    if not choice:
+        return "all"
+
+    priority_map = {
+        "1": "HIGH",
+        "2": "MEDIUM",
+        "3": "LOW",
+        "4": "all",
+    }
+
+    if choice in priority_map:
+        return priority_map[choice]
+    else:
+        print(f"{Fore.RED}Invalid choice. Using 'all'.{Style.RESET_ALL}")
+        return "all"
+
+
+def select_sort_option() -> str:
+    """Display sort option selection menu and get user choice.
+
+    Returns:
+        Sort criteria: "due_date", "priority", "title", or "created"
+    """
+    print(f"\n{Fore.CYAN}Sort By:{Style.RESET_ALL}")
+    print("  1. Due Date (default)")
+    print("  2. Priority")
+    print("  3. Title (A-Z)")
+    print("  4. Created Date")
+
+    choice = get_input("Enter choice (1-4) [1]: ", required=False)
+
+    # Default to due_date if empty
+    if not choice:
+        return "due_date"
+
+    sort_map = {
+        "1": "due_date",
+        "2": "priority",
+        "3": "title",
+        "4": "created",
+    }
+
+    if choice in sort_map:
+        return sort_map[choice]
+    else:
+        print(f"{Fore.RED}Invalid choice. Using 'due_date'.{Style.RESET_ALL}")
+        return "due_date"
 
 
 def add_task_interactive() -> None:
@@ -435,35 +563,34 @@ def filter_tasks_interactive() -> None:
         print(f"{Fore.YELLOW}No tasks found.{Style.RESET_ALL}")
         return
 
-    # Collect filter criteria
-    print(f"{Fore.CYAN}Enter filter criteria (leave blank to skip):{Style.RESET_ALL}\n")
+    # Collect filter criteria using selection menus
+    print(f"{Fore.CYAN}Select filter criteria:{Style.RESET_ALL}\n")
 
-    status_input = get_input("Status (complete/incomplete): ", required=False)
-    status = status_input if status_input in ["complete", "incomplete"] else None
+    # Use selection menu for status
+    status_filter = select_filter_status()
+    status = status_filter if status_filter != "all" else None
 
-    priority_input = get_input(
-        "Priority (HIGH/MEDIUM/LOW, comma-separated): ", required=False
-    )
+    # Use selection menu for priority
+    priority_filter = select_filter_priority()
     priorities = None
-    if priority_input:
-        priority_strs = [p.strip().upper() for p in priority_input.split(",")]
-        priorities = []
-        for p_str in priority_strs:
-            try:
-                priorities.append(Priority[p_str])
-            except KeyError:
-                pass
+    if priority_filter != "all":
+        try:
+            priorities = [Priority[priority_filter]]
+        except KeyError:
+            pass
 
-    tag_input = get_input("Tag: ", required=False)
+    # Tag is still text input (appropriate for free-form text)
+    tag_input = get_input("Tag (optional): ", required=False)
     tag = tag_input if tag_input else None
 
-    overdue_input = get_input("Show only overdue? (yes/no): ", required=False)
+    # Yes/no questions remain as text (simple choices)
+    overdue_input = get_input("Show only overdue? (yes/no) [no]: ", required=False)
     overdue_only = overdue_input.lower() in ["yes", "y"] if overdue_input else False
 
-    today_input = get_input("Show only due today? (yes/no): ", required=False)
+    today_input = get_input("Show only due today? (yes/no) [no]: ", required=False)
     due_today_only = today_input.lower() in ["yes", "y"] if today_input else False
 
-    week_input = get_input("Show only due this week? (yes/no): ", required=False)
+    week_input = get_input("Show only due this week? (yes/no) [no]: ", required=False)
     due_this_week_only = week_input.lower() in ["yes", "y"] if week_input else False
 
     # Apply filters
@@ -508,31 +635,25 @@ def sort_tasks_interactive() -> None:
         print(f"{Fore.YELLOW}No tasks found.{Style.RESET_ALL}")
         return
 
-    # Display sort options
-    print(f"{Fore.CYAN}Sort by:{Style.RESET_ALL}")
-    print("  1. Due Date (earliest first)")
-    print("  2. Priority (HIGH → MEDIUM → LOW)")
-    print("  3. Title (A-Z)")
-    print("  4. Created Date (oldest first)")
-
-    choice = get_input("\nSelect sort option (1-4): ", required=True)
+    # Use selection menu for sort option
+    sort_key = select_sort_option()
 
     sort_map = {
-        "1": ("due_date", filters.sort_by_due_date),
-        "2": ("priority", filters.sort_by_priority),
-        "3": ("title", filters.sort_by_title),
-        "4": ("created_date", filters.sort_by_created_date),
+        "due_date": ("due_date", filters.sort_by_due_date),
+        "priority": ("priority", filters.sort_by_priority),
+        "title": ("title", filters.sort_by_title),
+        "created": ("created_date", filters.sort_by_created_date),
     }
 
-    if choice not in sort_map:
+    if sort_key not in sort_map:
         print(f"{Fore.RED}Invalid choice.{Style.RESET_ALL}")
         return
 
-    sort_key, sort_func = sort_map[choice]
+    sort_desc_key, sort_func = sort_map[sort_key]
     sorted_tasks = sort_func(result.data)
 
     # Display sorted results
-    sort_desc = filters.get_sort_description(sort_key)
+    sort_desc = filters.get_sort_description(sort_desc_key)
     print(f"\n{Style.BRIGHT}Sorted by: {sort_desc}{Style.RESET_ALL}")
     print(f"{Style.BRIGHT}{len(sorted_tasks)} task(s){Style.RESET_ALL}\n")
 
@@ -560,16 +681,20 @@ def run_cli() -> None:
         elif choice == "4":
             delete_task_interactive()
         elif choice == "5":
-            mark_complete_interactive()
+            # Status Mark submenu
+            action = select_status_action()
+            if action == "complete":
+                mark_complete_interactive()
+            elif action == "incomplete":
+                mark_incomplete_interactive()
+            # If "back", do nothing and return to main menu
         elif choice == "6":
-            mark_incomplete_interactive()
-        elif choice == "7":
             search_tasks_interactive()
-        elif choice == "8":
+        elif choice == "7":
             filter_tasks_interactive()
-        elif choice == "9":
+        elif choice == "8":
             sort_tasks_interactive()
-        elif choice == "10":
+        elif choice == "9":
             print(f"\n{Fore.CYAN}Recurring Tasks:{Style.RESET_ALL}")
             print(
                 "Recurring tasks are created automatically when you "
@@ -579,7 +704,7 @@ def run_cli() -> None:
             print("  1. Select 'Add Task' or 'Update Task'")
             print("  2. Set a recurrence pattern (DAILY/WEEKLY/MONTHLY/YEARLY)")
             print("  3. When you mark it complete, a new instance is auto-created")
-        elif choice == "11":
+        elif choice == "10":
             print(f"\n{Fore.CYAN}Reminders:{Style.RESET_ALL}")
             print("Reminders are set when creating or updating a task.")
             print("To set a reminder:")

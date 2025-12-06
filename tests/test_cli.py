@@ -282,3 +282,215 @@ class TestSelectRecurrence:
 
         captured = capsys.readouterr()
         assert "Invalid" in captured.out or "invalid" in captured.out
+
+
+class TestSelectStatusAction:
+    """Test status mark submenu (F014 - User Story 1)."""
+
+    def test_select_status_action_complete(self, monkeypatch):
+        """Test selecting 'Mark Complete' from Status Mark submenu (option A)."""
+        from src.todo.cli import select_status_action
+
+        monkeypatch.setattr("builtins.input", lambda _: "A")
+        action = select_status_action()
+        assert action == "complete"
+
+    def test_select_status_action_complete_lowercase(self, monkeypatch):
+        """Test selecting 'Mark Complete' with lowercase 'a'."""
+        from src.todo.cli import select_status_action
+
+        monkeypatch.setattr("builtins.input", lambda _: "a")
+        action = select_status_action()
+        assert action == "complete"
+
+    def test_select_status_action_incomplete(self, monkeypatch):
+        """Test selecting 'Mark Incomplete' from Status Mark submenu (option B)."""
+        from src.todo.cli import select_status_action
+
+        monkeypatch.setattr("builtins.input", lambda _: "B")
+        action = select_status_action()
+        assert action == "incomplete"
+
+    def test_select_status_action_incomplete_lowercase(self, monkeypatch):
+        """Test selecting 'Mark Incomplete' with lowercase 'b'."""
+        from src.todo.cli import select_status_action
+
+        monkeypatch.setattr("builtins.input", lambda _: "b")
+        action = select_status_action()
+        assert action == "incomplete"
+
+    def test_select_status_action_back(self, monkeypatch):
+        """Test selecting 'Back' from Status Mark submenu (option 0)."""
+        from src.todo.cli import select_status_action
+
+        monkeypatch.setattr("builtins.input", lambda _: "0")
+        action = select_status_action()
+        assert action == "back"
+
+    def test_select_status_action_invalid(self, monkeypatch, capsys):
+        """Test invalid input defaults to 'back' with error message."""
+        from src.todo.cli import select_status_action
+
+        monkeypatch.setattr("builtins.input", lambda _: "X")
+        action = select_status_action()
+        assert action == "back"
+
+        captured = capsys.readouterr()
+        assert "Invalid" in captured.out or "invalid" in captured.out
+
+
+class TestSelectFilterStatus:
+    """Test filter status selection menu (F014 - User Story 2)."""
+
+    def test_select_filter_status_complete(self, monkeypatch):
+        """Test selecting 'complete' status filter (option 1)."""
+        from src.todo.cli import select_filter_status
+
+        monkeypatch.setattr("builtins.input", lambda _: "1")
+        status = select_filter_status()
+        assert status == "complete"
+
+    def test_select_filter_status_incomplete(self, monkeypatch):
+        """Test selecting 'incomplete' status filter (option 2)."""
+        from src.todo.cli import select_filter_status
+
+        monkeypatch.setattr("builtins.input", lambda _: "2")
+        status = select_filter_status()
+        assert status == "incomplete"
+
+    def test_select_filter_status_all(self, monkeypatch):
+        """Test selecting 'all' status filter (option 3)."""
+        from src.todo.cli import select_filter_status
+
+        monkeypatch.setattr("builtins.input", lambda _: "3")
+        status = select_filter_status()
+        assert status == "all"
+
+    def test_select_filter_status_default(self, monkeypatch):
+        """Test empty input defaults to 'all'."""
+        from src.todo.cli import select_filter_status
+
+        monkeypatch.setattr("builtins.input", lambda _: "")
+        status = select_filter_status()
+        assert status == "all"
+
+    def test_select_filter_status_invalid(self, monkeypatch, capsys):
+        """Test invalid input defaults to 'all' with error message."""
+        from src.todo.cli import select_filter_status
+
+        monkeypatch.setattr("builtins.input", lambda _: "99")
+        status = select_filter_status()
+        assert status == "all"
+
+        captured = capsys.readouterr()
+        assert "Invalid" in captured.out or "invalid" in captured.out
+
+
+class TestSelectFilterPriority:
+    """Test filter priority selection menu (F014 - User Story 2)."""
+
+    def test_select_filter_priority_high(self, monkeypatch):
+        """Test selecting HIGH priority filter (option 1)."""
+        from src.todo.cli import select_filter_priority
+
+        monkeypatch.setattr("builtins.input", lambda _: "1")
+        priority = select_filter_priority()
+        assert priority == "HIGH"
+
+    def test_select_filter_priority_medium(self, monkeypatch):
+        """Test selecting MEDIUM priority filter (option 2)."""
+        from src.todo.cli import select_filter_priority
+
+        monkeypatch.setattr("builtins.input", lambda _: "2")
+        priority = select_filter_priority()
+        assert priority == "MEDIUM"
+
+    def test_select_filter_priority_low(self, monkeypatch):
+        """Test selecting LOW priority filter (option 3)."""
+        from src.todo.cli import select_filter_priority
+
+        monkeypatch.setattr("builtins.input", lambda _: "3")
+        priority = select_filter_priority()
+        assert priority == "LOW"
+
+    def test_select_filter_priority_all(self, monkeypatch):
+        """Test selecting 'all' priority filter (option 4)."""
+        from src.todo.cli import select_filter_priority
+
+        monkeypatch.setattr("builtins.input", lambda _: "4")
+        priority = select_filter_priority()
+        assert priority == "all"
+
+    def test_select_filter_priority_default(self, monkeypatch):
+        """Test empty input defaults to 'all'."""
+        from src.todo.cli import select_filter_priority
+
+        monkeypatch.setattr("builtins.input", lambda _: "")
+        priority = select_filter_priority()
+        assert priority == "all"
+
+    def test_select_filter_priority_invalid(self, monkeypatch, capsys):
+        """Test invalid input defaults to 'all' with error message."""
+        from src.todo.cli import select_filter_priority
+
+        monkeypatch.setattr("builtins.input", lambda _: "88")
+        priority = select_filter_priority()
+        assert priority == "all"
+
+        captured = capsys.readouterr()
+        assert "Invalid" in captured.out or "invalid" in captured.out
+
+
+class TestSelectSortOption:
+    """Test sort option selection menu (F014 - User Story 2)."""
+
+    def test_select_sort_by_due_date(self, monkeypatch):
+        """Test selecting sort by due date (option 1)."""
+        from src.todo.cli import select_sort_option
+
+        monkeypatch.setattr("builtins.input", lambda _: "1")
+        sort_by = select_sort_option()
+        assert sort_by == "due_date"
+
+    def test_select_sort_by_priority(self, monkeypatch):
+        """Test selecting sort by priority (option 2)."""
+        from src.todo.cli import select_sort_option
+
+        monkeypatch.setattr("builtins.input", lambda _: "2")
+        sort_by = select_sort_option()
+        assert sort_by == "priority"
+
+    def test_select_sort_by_title(self, monkeypatch):
+        """Test selecting sort by title (option 3)."""
+        from src.todo.cli import select_sort_option
+
+        monkeypatch.setattr("builtins.input", lambda _: "3")
+        sort_by = select_sort_option()
+        assert sort_by == "title"
+
+    def test_select_sort_by_created(self, monkeypatch):
+        """Test selecting sort by created date (option 4)."""
+        from src.todo.cli import select_sort_option
+
+        monkeypatch.setattr("builtins.input", lambda _: "4")
+        sort_by = select_sort_option()
+        assert sort_by == "created"
+
+    def test_select_sort_default(self, monkeypatch):
+        """Test empty input defaults to 'due_date'."""
+        from src.todo.cli import select_sort_option
+
+        monkeypatch.setattr("builtins.input", lambda _: "")
+        sort_by = select_sort_option()
+        assert sort_by == "due_date"
+
+    def test_select_sort_invalid(self, monkeypatch, capsys):
+        """Test invalid input defaults to 'due_date' with error message."""
+        from src.todo.cli import select_sort_option
+
+        monkeypatch.setattr("builtins.input", lambda _: "77")
+        sort_by = select_sort_option()
+        assert sort_by == "due_date"
+
+        captured = capsys.readouterr()
+        assert "Invalid" in captured.out or "invalid" in captured.out
