@@ -13,7 +13,7 @@ colorama_init(autoreset=True)
 
 
 def format_task(task: Task) -> str:
-    """Format a task for display.
+    """Format a task for display with structured sections.
 
     Args:
         task: Task to format
@@ -22,51 +22,70 @@ def format_task(task: Task) -> str:
         Formatted string representation of the task
     """
     # Status indicator
-    status_icon = "[X]" if task.status == "complete" else "[ ]"
+    status_icon = f"{Fore.GREEN}[✓]" if task.status == "complete" else f"{Fore.YELLOW}[ ]"
 
     # Priority indicator
     priority_map = {
-        Priority.HIGH: f"{Fore.RED}[H]",
-        Priority.MEDIUM: f"{Fore.YELLOW}[M]",
-        Priority.LOW: f"{Fore.GREEN}[L]",
+        Priority.HIGH: f"{Fore.RED}HIGH  ",
+        Priority.MEDIUM: f"{Fore.YELLOW}MEDIUM",
+        Priority.LOW: f"{Fore.GREEN}LOW   ",
     }
-    priority_str = priority_map.get(task.priority, "[?]")
+    priority_str = priority_map.get(task.priority, "UNKNOWN")
 
     # Overdue indicator
-    overdue_str = f"{Fore.RED}[!]" if task.is_overdue else ""
+    overdue_indicator = f" {Fore.RED}[OVERDUE!]{Style.RESET_ALL}" if task.is_overdue else ""
 
-    # Task type
-    task_type_str = f"[{task.task_type.value}]"
+    # Build structured output with clear sections
+    output_lines = []
 
-    # Tags
-    tags_str = f" {Fore.CYAN}#{',#'.join(task.tags)}" if task.tags else ""
-
-    # Due date
-    due_date_str = ""
-    if task.due_date:
-        due_date_str = f" {Fore.MAGENTA}Due: {task.due_date.strftime('%Y-%m-%d %H:%M')}"
-
-    # Recurrence
-    recurrence_str = ""
-    if task.recurrence:
-        recurrence_str = f" {Fore.BLUE}[{task.recurrence.value}]"
-
-    # Build output
-    output = (
-        f"{status_icon} {priority_str} "
-        f"{Style.BRIGHT}#{task.id}{Style.RESET_ALL} "
-        f"{task.title}"
-        f"{overdue_str}"
-        f"{tags_str}"
-        f"{due_date_str}"
-        f"{recurrence_str}"
-        f" {Fore.WHITE}{task_type_str}"
+    # Header line with ID and title
+    output_lines.append(
+        f"{Style.BRIGHT}{'-' * 80}{Style.RESET_ALL}"
+    )
+    output_lines.append(
+        f"{status_icon} {Style.BRIGHT}#{task.id:03d}{Style.RESET_ALL} | "
+        f"{Style.BRIGHT}{task.title}{Style.RESET_ALL}{overdue_indicator}"
     )
 
-    if task.description:
-        output += f"\n    {Fore.WHITE}{task.description}"
+    # Metadata section
+    metadata_parts = []
+    metadata_parts.append(f"{Fore.CYAN}Priority:{Style.RESET_ALL} {priority_str}{Style.RESET_ALL}")
+    metadata_parts.append(f"{Fore.CYAN}Type:{Style.RESET_ALL} {task.task_type.value.title()}")
+    metadata_parts.append(f"{Fore.CYAN}Status:{Style.RESET_ALL} {task.status.title()}")
 
-    return output
+    output_lines.append(f"      | {' | '.join(metadata_parts)}")
+
+    # Description section (if exists)
+    if task.description:
+        output_lines.append(f"      |")
+        output_lines.append(f"      | {Fore.CYAN}Description:{Style.RESET_ALL}")
+        output_lines.append(f"      |   {task.description}")
+
+    # Schedule section (if has due date or recurrence)
+    if task.due_date or task.recurrence:
+        output_lines.append(f"      |")
+        output_lines.append(f"      | {Fore.MAGENTA}Schedule:{Style.RESET_ALL}")
+        if task.due_date:
+            due_date_formatted = task.due_date.strftime('%Y-%m-%d %H:%M')
+            output_lines.append(f"      |   Due: {due_date_formatted}")
+        if task.recurrence:
+            output_lines.append(f"      |   Recurrence: {task.recurrence.value.title()}")
+        if task.reminder_offset:
+            output_lines.append(f"      |   Reminder: {task.reminder_offset} hours before")
+
+    # Tags section (if exists)
+    if task.tags:
+        output_lines.append(f"      |")
+        tags_formatted = ", ".join([f"{Fore.CYAN}#{tag}{Style.RESET_ALL}" for tag in task.tags])
+        output_lines.append(f"      | {Fore.CYAN}Tags:{Style.RESET_ALL} {tags_formatted}")
+
+    # Dates section
+    output_lines.append(f"      |")
+    output_lines.append(f"      | {Fore.WHITE}Created:{Style.RESET_ALL} {task.created_date.strftime('%Y-%m-%d %H:%M')}")
+    if task.completed_date:
+        output_lines.append(f"      | {Fore.GREEN}Completed:{Style.RESET_ALL} {task.completed_date.strftime('%Y-%m-%d %H:%M')}")
+
+    return "\n".join(output_lines)
 
 
 def display_menu() -> None:
@@ -462,18 +481,36 @@ def add_task_interactive() -> None:
 
 def view_all_tasks_interactive() -> None:
     """Interactive flow for viewing all tasks."""
-    print(f"\n{Style.BRIGHT}All Tasks{Style.RESET_ALL}")
-    print(f"{'-'*60}")
+    print(f"\n{Style.BRIGHT}{'='*80}")
+    print(f"{Fore.CYAN}{Style.BRIGHT}ALL TASKS")
+    print(f"{Style.BRIGHT}{'='*80}{Style.RESET_ALL}\n")
 
     result = commands.view_all_tasks_command()
 
     if result.success:
         if not result.data:
-            print(f"{Fore.YELLOW}No tasks found.{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}No tasks found. Add your first task!{Style.RESET_ALL}")
         else:
+            # Display summary header
+            total = len(result.data)
+            complete = sum(1 for t in result.data if t.status == "complete")
+            incomplete = total - complete
+            overdue = sum(1 for t in result.data if t.is_overdue)
+
+            print(f"{Style.BRIGHT}SUMMARY{Style.RESET_ALL}")
+            print(f"  Total Tasks: {Fore.CYAN}{total}{Style.RESET_ALL}")
+            print(f"  Complete: {Fore.GREEN}{complete}{Style.RESET_ALL}")
+            print(f"  Incomplete: {Fore.YELLOW}{incomplete}{Style.RESET_ALL}")
+            if overdue > 0:
+                print(f"  Overdue: {Fore.RED}{overdue}{Style.RESET_ALL}")
+            print()
+
+            # Display tasks
             for task in result.data:
-                print(f"\n{format_task(task)}")
-            print(f"\n{Fore.GREEN}{result.message}{Style.RESET_ALL}")
+                print(format_task(task))
+
+            print(f"\n{Style.BRIGHT}{'-' * 80}{Style.RESET_ALL}")
+            print(f"{Fore.GREEN}[OK] {result.message}{Style.RESET_ALL}")
     else:
         print(f"{Fore.RED}[ERROR] {result.message}{Style.RESET_ALL}")
 
@@ -627,8 +664,9 @@ def mark_incomplete_interactive() -> None:
 
 def search_tasks_interactive() -> None:
     """Interactive flow for searching tasks."""
-    print(f"\n{Style.BRIGHT}Search Tasks{Style.RESET_ALL}")
-    print(f"{'-'*60}")
+    print(f"\n{Style.BRIGHT}{'='*80}")
+    print(f"{Fore.CYAN}{Style.BRIGHT}SEARCH TASKS")
+    print(f"{Style.BRIGHT}{'='*80}{Style.RESET_ALL}\n")
 
     keyword = get_input("Search keyword: ", required=True)
 
@@ -641,21 +679,26 @@ def search_tasks_interactive() -> None:
     filtered_tasks = filters.search_tasks(result.data, keyword)
 
     if not filtered_tasks:
-        print(f"{Fore.YELLOW}No tasks match '{keyword}'.{Style.RESET_ALL}")
+        print(f"\n{Fore.YELLOW}No tasks match '{keyword}'.{Style.RESET_ALL}")
     else:
         result_count = len(filtered_tasks)
-        print(
-            f"\n{Style.BRIGHT}Search Results ({result_count} found):"
-            f"{Style.RESET_ALL}"
-        )
+        print(f"\n{Style.BRIGHT}SEARCH RESULTS{Style.RESET_ALL}")
+        print(f"  Keyword: {Fore.CYAN}'{keyword}'{Style.RESET_ALL}")
+        print(f"  Matches: {Fore.GREEN}{result_count}{Style.RESET_ALL} out of {len(result.data)} tasks")
+        print()
+
         for task in filtered_tasks:
-            print(f"\n{format_task(task)}")
+            print(format_task(task))
+
+        print(f"\n{Style.BRIGHT}{'-' * 80}{Style.RESET_ALL}")
+        print(f"{Fore.GREEN}[OK] Search complete{Style.RESET_ALL}")
 
 
 def filter_tasks_interactive() -> None:
     """Interactive flow for filtering tasks."""
-    print(f"\n{Style.BRIGHT}Filter Tasks{Style.RESET_ALL}")
-    print(f"{'-'*60}")
+    print(f"\n{Style.BRIGHT}{'='*80}")
+    print(f"{Fore.CYAN}{Style.BRIGHT}FILTER TASKS")
+    print(f"{Style.BRIGHT}{'='*80}{Style.RESET_ALL}\n")
 
     # Get all tasks
     result = commands.view_all_tasks_command()
@@ -664,7 +707,7 @@ def filter_tasks_interactive() -> None:
         return
 
     # Collect filter criteria using selection menus
-    print(f"{Fore.CYAN}Select filter criteria:{Style.RESET_ALL}\n")
+    print(f"{Fore.CYAN}{Style.BRIGHT}SELECT FILTER CRITERIA{Style.RESET_ALL}\n")
 
     # Use selection menu for status
     status_filter = select_filter_status()
@@ -714,20 +757,26 @@ def filter_tasks_interactive() -> None:
         due_this_week_only=due_this_week_only,
     )
 
-    print(f"\n{Style.BRIGHT}{filter_summary}{Style.RESET_ALL}")
-    print(f"{Style.BRIGHT}Results: {len(filtered_tasks)} task(s){Style.RESET_ALL}\n")
+    print(f"\n{Style.BRIGHT}FILTER RESULTS{Style.RESET_ALL}")
+    print(f"  {filter_summary}")
+    print(f"  Matches: {Fore.GREEN}{len(filtered_tasks)}{Style.RESET_ALL} out of {len(result.data)} tasks")
+    print()
 
     if not filtered_tasks:
         print(f"{Fore.YELLOW}No tasks match the filter criteria.{Style.RESET_ALL}")
     else:
         for task in filtered_tasks:
-            print(f"\n{format_task(task)}")
+            print(format_task(task))
+
+        print(f"\n{Style.BRIGHT}{'-' * 80}{Style.RESET_ALL}")
+        print(f"{Fore.GREEN}[OK] Filter complete{Style.RESET_ALL}")
 
 
 def sort_tasks_interactive() -> None:
     """Interactive flow for sorting tasks."""
-    print(f"\n{Style.BRIGHT}Sort Tasks{Style.RESET_ALL}")
-    print(f"{'-'*60}")
+    print(f"\n{Style.BRIGHT}{'='*80}")
+    print(f"{Fore.CYAN}{Style.BRIGHT}SORT TASKS")
+    print(f"{Style.BRIGHT}{'='*80}{Style.RESET_ALL}\n")
 
     # Get all tasks
     result = commands.view_all_tasks_command()
@@ -754,11 +803,16 @@ def sort_tasks_interactive() -> None:
 
     # Display sorted results
     sort_desc = filters.get_sort_description(sort_desc_key)
-    print(f"\n{Style.BRIGHT}Sorted by: {sort_desc}{Style.RESET_ALL}")
-    print(f"{Style.BRIGHT}{len(sorted_tasks)} task(s){Style.RESET_ALL}\n")
+    print(f"\n{Style.BRIGHT}SORTED RESULTS{Style.RESET_ALL}")
+    print(f"  Sort Order: {Fore.CYAN}{sort_desc}{Style.RESET_ALL}")
+    print(f"  Total Tasks: {Fore.GREEN}{len(sorted_tasks)}{Style.RESET_ALL}")
+    print()
 
     for task in sorted_tasks:
-        print(f"\n{format_task(task)}")
+        print(format_task(task))
+
+    print(f"\n{Style.BRIGHT}{'-' * 80}{Style.RESET_ALL}")
+    print(f"{Fore.GREEN}[OK] Sort complete{Style.RESET_ALL}")
 
 
 def run_cli() -> None:
