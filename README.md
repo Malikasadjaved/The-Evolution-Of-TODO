@@ -1,14 +1,14 @@
 # Python CLI Todo Application
 
-[![Tests](https://img.shields.io/badge/tests-158%20passing-brightgreen)](https://github.com/Malikasadjaved/Python-Todo-Cli-App)
-[![Coverage](https://img.shields.io/badge/coverage-51%25-yellow)](https://github.com/Malikasadjaved/Python-Todo-Cli-App)
-[![Python](https://img.shields.io/badge/python-3.13%2B-blue)](https://www.python.org/downloads/)
+[![Tests](https://img.shields.io/badge/tests-317%20passing-brightgreen)](https://github.com/Malikasadjaved/Python-Todo-Cli-App)
+[![Coverage](https://img.shields.io/badge/coverage-85%25-brightgreen)](https://github.com/Malikasadjaved/Python-Todo-Cli-App)
+[![Python](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Code Style](https://img.shields.io/badge/code%20style-black-black)](https://github.com/psf/black)
 
 A feature-rich command-line todo application built with **Test-Driven Development (TDD)** and **Spec-Driven Development (SDD)**, featuring three-tier progressive architecture: Primary (CRUD), Intermediate (Organization), and Advanced (Automation).
 
-> **🎯 Hackathon Project:** Built with rigorous software engineering practices - 158 comprehensive tests, clean architecture, and professional-grade code quality.
+> **🎯 Hackathon Project:** Built with rigorous software engineering practices - 317 comprehensive tests, 85% code coverage, clean architecture, and professional-grade code quality.
 
 ## Features
 
@@ -31,10 +31,19 @@ A feature-rich command-line todo application built with **Test-Driven Developmen
 - 🔄 Recurring tasks (DAILY/WEEKLY/MONTHLY/YEARLY)
 - ⏰ Due date and time reminders with desktop notifications
 
+### Data Persistence
+- 💾 **Automatic JSON storage** - All tasks saved to disk automatically
+- 🔒 **File locking** - Prevents data corruption from multiple instances
+- ⚡ **Atomic writes** - Safe saves with automatic backup recovery
+- 📍 **Platform-specific paths:**
+  - Windows: `%APPDATA%\todo-app\tasks.json`
+  - macOS: `~/Library/Application Support/todo-app/tasks.json`
+  - Linux: `~/.local/share/todo-app/tasks.json`
+
 ## Installation
 
 ### Prerequisites
-- Python 3.13 or higher
+- Python 3.9 or higher
 - pip package manager
 
 ### Setup
@@ -72,6 +81,52 @@ Run the application:
 ```bash
 python main.py
 ```
+
+### Date & Time Formats
+
+**Due Date Input:**
+- Format: `YYYY-MM-DD` or `YYYY-MM-DD HH:MM` (24-hour time)
+- Examples:
+  - `2025-12-25` (date only, defaults to 00:00)
+  - `2025-12-25 14:30` (specific time: 2:30 PM)
+
+**Timezone Handling:**
+- All times are in local system timezone
+- Overdue detection uses current local time
+
+### Recurrence Patterns
+
+**Available Patterns:**
+- **DAILY:** Repeats every day at the same time
+- **WEEKLY:** Repeats every 7 days from completion date
+- **BIWEEKLY:** Repeats every 14 days from completion date
+- **MONTHLY:** Repeats on the same day next month (edge case: Jan 31 → Feb 28/29)
+- **YEARLY:** Repeats on the same date next year (handles Feb 29 leap years)
+
+**Behavior:**
+- When you mark a recurring task as complete, a new task instance is automatically created
+- The new task has the next due date calculated based on the recurrence pattern
+- All other properties (title, description, priority, tags, reminder) are preserved
+
+**Edge Cases Handled:**
+- **Month-end dates:** Jan 31 with monthly recurrence becomes Feb 28 (or 29 in leap years)
+- **Leap years:** Feb 29 with yearly recurrence becomes Feb 28 in non-leap years
+
+### Notification Behavior
+
+**Desktop Notifications:**
+- Cross-platform system notifications using `plyer` library
+- Supported on Windows, macOS, and Linux
+
+**Reminder Configuration:**
+- Set reminder offset when creating or updating tasks
+- Offset is specified in hours before the due date/time
+- Example: For a task due at 2:00 PM with 1-hour reminder, notification triggers at 1:00 PM
+
+**Notification Timing:**
+- The notification system runs in the background when the app is active
+- Reminders trigger at the calculated time (due_date - reminder_offset)
+- Each task can have one reminder configuration
 
 ### Menu Navigation
 
@@ -231,18 +286,19 @@ To-do-app/
 
 ## Test Coverage
 
-**Total Tests:** 158 passing ✅
+**Total Tests:** 317 passing ✅
 
 **Coverage by Module:**
 - `storage.py`: 100% - Core CRUD operations
-- `models.py`: 94% - Data models and validation
+- `filters.py`: 100% - Search/filter/sort
+- `notifications.py`: 100% - Reminder system
+- `models.py`: 98% - Data models and validation
+- `persistence.py`: 95% - JSON storage and file operations
 - `scheduler.py`: 90% - Recurring task logic
-- `commands.py`: 69% - Business logic layer
-- `notifications.py`: 68% - Reminder system
-- `filters.py`: 49% - Search/filter/sort
-- `cli.py`: 19% - Interactive CLI (presentation layer)
+- `commands.py`: 83% - Business logic layer
+- `cli.py`: 76% - Interactive CLI (presentation layer)
 
-**Overall:** 51% (Core business logic: 90-100%)
+**Overall:** 85% (Core business logic: 90-100%)
 
 The CLI layer has lower coverage as it's the interactive presentation layer. All core business logic is thoroughly tested with TDD approach.
 
@@ -251,7 +307,7 @@ The CLI layer has lower coverage as it's the interactive presentation layer. All
 **PRODUCTION READY** 🎉
 
 ✅ 15 features complete (12 original + 3 UX enhancements)
-✅ 158 tests passing
+✅ 317 tests passing (85% coverage)
 ✅ Code formatted with black
 ✅ Flake8 compliant
 ✅ Type-hinted
