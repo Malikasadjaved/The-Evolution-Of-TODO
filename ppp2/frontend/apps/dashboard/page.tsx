@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { PlusIcon } from "@heroicons/react/24/outline";
 import { TaskList } from "@/components/TaskList";
@@ -24,25 +24,14 @@ export default function DashboardPage() {
   const [filters, setFilters] = useState<TaskFilters>(DEFAULT_FILTERS);
   const [sortBy, setSortBy] = useState<SortOption>(DEFAULT_SORT);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
 
   const createModal = useModal();
   const editModal = useModal();
 
-  // Redirect to login if not authenticated - ONLY ONCE
-  useEffect(() => {
-    if (!isPending && !hasCheckedAuth) {
-      setHasCheckedAuth(true);
-      if (!session) {
-        router.push("/login");
-      }
-    }
-  }, [isPending, session, hasCheckedAuth, router]);
-
-  // Get user ID from session
+  // Get user ID from session - don't redirect, let API handle auth
   const userId = session?.user?.id || "";
 
-  // Fetch tasks with current filters
+  // Fetch tasks - if not authenticated, API will return 401
   const {
     tasks: allTasks,
     loading,
@@ -63,10 +52,10 @@ export default function DashboardPage() {
   // Get unique tags for filter panel
   const availableTags = useMemo(() => getUniqueTags(allTasks), [allTasks]);
 
-  // Handle search change
-  const handleSearchChange = (search: string) => {
+  // Handle search change - memoized to prevent infinite loop with SearchBar
+  const handleSearchChange = useCallback((search: string) => {
     setFilters((prev) => ({ ...prev, search: search || undefined }));
-  };
+  }, []);
 
   // Handle create task
   const handleCreateTask = async (data: TaskFormData) => {
@@ -107,24 +96,6 @@ export default function DashboardPage() {
     editModal.close();
     setEditingTask(null);
   };
-
-  // Show loading state while checking auth
-  if (isPending) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-600">Loading...</div>
-      </div>
-    );
-  }
-
-  // Don't render if not authenticated
-  if (!session) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-600">Redirecting to login...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -218,23 +189,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-// In your dashboard page.tsx, add these logs:
-useEffect(() => {
-  console.log("🔍 Session Debug:", {
-    isPending,
-    hasSession: !!session,
-    sessionData: session,
-    hasCheckedAuth,
-  });
-
-  if (!isPending && !hasCheckedAuth) {
-    setHasCheckedAuth(true);
-    if (!session) {
-      console.log("❌ No session found, redirecting to login");
-      router.push("/login");
-    } else {
-      console.log("✅ Session found, staying on dashboard");
-    }
-  }
-}, [isPending, session, hasCheckedAuth, router]);

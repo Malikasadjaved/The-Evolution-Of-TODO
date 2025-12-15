@@ -15,6 +15,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { TaskItem } from '@/components/TaskItem'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import type { Task } from '@/lib/types'
@@ -73,6 +74,8 @@ export function TaskList({
 
   // Error state
   if (error) {
+    const isAuthError = error.toLowerCase().includes('authentication') || error.toLowerCase().includes('log in')
+
     return (
       <div className="rounded-lg bg-red-50 border border-red-200 p-4">
         <div className="flex">
@@ -89,9 +92,19 @@ export function TaskList({
               />
             </svg>
           </div>
-          <div className="ml-3">
+          <div className="ml-3 flex-1">
             <h3 className="text-sm font-medium text-red-800">Error loading tasks</h3>
             <div className="mt-2 text-sm text-red-700">{error}</div>
+            {isAuthError && (
+              <div className="mt-4">
+                <Link
+                  href="/login"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Go to Login
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </div>
