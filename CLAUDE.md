@@ -1,4 +1,4 @@
-# Claude Code Development Guide
+﻿# Claude Code Development Guide
 
 > **📘 For Developers Using Claude Code**
 > This file contains development guidelines and rules for contributing to this project using Claude Code.
@@ -230,13 +230,130 @@ Wait for consent; never auto-create ADRs. Group related decisions (stacks, authe
 
 ## Basic Project Structure
 
-- `.specify/memory/constitution.md` — Project principles
+- `.specify/memory/constitution.md` — Project principles (Phase 1 - preserved)
+- `.specify/memory/phase-2-constitution.md` — Phase 2 constitution (v1.1.0 - ACTIVE)
 - `specs/<feature>/spec.md` — Feature requirements
 - `specs/<feature>/plan.md` — Architecture decisions
 - `specs/<feature>/tasks.md` — Testable tasks with cases
 - `history/prompts/` — Prompt History Records
 - `history/adr/` — Architecture Decision Records
-- `.specify/` — SpecKit Plus templates and scripts
+- `.specify/` — SpecKit Plus templates and scripts (Phase 1)
+- `.spec-kit/agents.yaml` — Phase 2 agent and skill configurations
+
+## Agent-Assisted Development (Phase 2 - CRITICAL)
+
+**The project MUST use specialized agents for validation, auditing, and code generation per Phase 2 Constitution Section XIII.**
+
+All agent and skill definitions are in `.spec-kit/agents.yaml`.
+
+### Agent vs Skill Usage
+
+| Type | Purpose | When to Use | Command Pattern |
+|------|---------|-------------|-----------------|
+| **Skill** | Generate boilerplate code | Before manual implementation | `"Use the <skill_name> skill to generate <file>"` |
+| **Agent** | Validate existing code | After implementation | `"Create the <agent_name> agent and RUN it"` |
+
+### Available Agents
+
+#### 1. Spec Validator Agent
+**Purpose:** Validate specifications before implementation
+**Triggers:**
+- Before starting implementation
+- After spec updates
+- During /sp.clarify workflow
+
+**Validation Rules:**
+- All API endpoints have database models
+- JWT flow is consistent across all specs
+- All endpoints document auth requirements
+- Error responses are specified with status codes
+- Validation rules are defined for all inputs
+- User isolation enforced in all CRUD specs
+
+**Usage:** `"Create the spec_validator agent and run it on specs/001-fullstack-web-app/spec.md"`
+
+#### 2. Security Auditor Agent
+**Purpose:** Audit implementation for security vulnerabilities
+**Triggers:**
+- After implementing authentication (JWT middleware)
+- After implementing API endpoints
+- Before deployment to production
+- After any auth-related code changes
+
+**Audit Checks:**
+- JWT verification present on ALL protected endpoints
+- Token user_id matches URL user_id check is present
+- Database queries filter by token user_id (NEVER URL user_id)
+- No hardcoded BETTER_AUTH_SECRET in source code
+- Proper 401 vs 403 error responses (401: missing token, 403: wrong user)
+- CORS configuration allows only frontend origin
+- No SQL injection vulnerabilities (SQLModel parameterized queries used)
+
+**Usage:** `"Create the security_auditor agent and run it on backend/src/api/"`
+
+#### 3. API Contract Validator Agent
+**Purpose:** Ensure frontend-backend API alignment
+**Triggers:**
+- After backend API implementation
+- After frontend API client implementation
+- After API spec changes
+- Before integration testing
+
+**Validation Checks:**
+- Endpoint paths match spec exactly (e.g., /api/{user_id}/tasks)
+- Request payload types align (TypeScript ↔ Pydantic)
+- Response payload types align
+- Frontend handles all documented error codes (401, 403, 404, 422, 500)
+- Authorization: Bearer <token> header included in all protected requests
+- TypeScript interfaces match Pydantic models (Task, User, Tag)
+
+**Usage:** `"Create the api_contract_validator agent and run it to check frontend/backend alignment"`
+
+### Available Skills
+
+#### 1. JWT Middleware Generator
+**Purpose:** Generate FastAPI JWT verification middleware following constitution Section VI (5-step JWT flow)
+
+**Output Files:** `backend/src/api/auth.py`
+
+**Pattern:**
+1. Extract token from "Authorization: Bearer <token>" header
+2. Verify signature using BETTER_AUTH_SECRET (from environment)
+3. Check token expiration (reject if expired → 401)
+4. Decode payload to extract user_id and email
+5. Raise HTTPException 401 on any verification failure
+6. Return user_id for use in route handlers
+
+**Usage:** `"Use the jwt_middleware_generator skill to generate backend/src/api/auth.py"`
+
+#### 2. API Client Generator
+**Purpose:** Generate type-safe frontend API client with automatic JWT attachment
+
+**Output Files:** `frontend/lib/api.ts`, `frontend/types/api.ts`
+
+**Pattern:**
+1. Auto-attach JWT token from localStorage to all requests
+2. Type-safe request/response using TypeScript interfaces
+3. Handle 401 Unauthorized → redirect to /login
+4. Handle 403 Forbidden → show error toast
+5. Handle network errors → show retry option
+6. Debounce search requests (300ms delay)
+7. Provide methods for all API endpoints (getTasks, createTask, updateTask, etc.)
+
+**Usage:** `"Use the api_client_generator skill to generate frontend/lib/api.ts"`
+
+### Agent Creation Timeline
+
+1. **Constitution Phase** (✅ Completed): Agents specified in `.spec-kit/agents.yaml`
+2. **Spec Writing Phase** (✅ Completed): Detailed specs created
+3. **Agent Creation Phase** (Next): Create Spec Validator Agent, run on specs
+4. **Implementation Phase**: Use skills to generate boilerplate (auth.py, api.ts)
+5. **Audit Phase**: Create and run Security Audit Agent
+6. **Integration Phase**: Create and run API Contract Agent
+
+### Rationale
+Agents automate validation, catch security issues early, and ensure frontend-backend alignment. Skills accelerate boilerplate generation following constitution patterns.
 
 ## Code Standards
-See `.specify/memory/constitution.md` for code quality, testing, performance, security, and architecture principles.
+See `.specify/memory/phase-2-constitution.md` for Phase 2 code quality, testing, performance, security, and architecture principles.
+See `.specify/memory/constitution.md` for Phase 1 principles (preserved for reference).
