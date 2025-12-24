@@ -3,21 +3,57 @@
 @tailwind utilities;
 
 /**
- * Purple Kanban Design System - Global Styles
- *
- * Dark mode by default with purple gradient background.
+ * Purple Kanban Design System - Global Styles with Dark/Light Mode
  */
 
 :root {
-  /* Purple Theme Colors */
-  --purple-darkest: #1a0f3d;
-  --purple-dark: #2D1B69;
-  --purple-medium: #3d2475;
-  --purple-accent: #6B46C1;
+  /* Light Mode Colors */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-tertiary: #f3f4f6;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-tertiary: #9ca3af;
+  --border-primary: #e5e7eb;
+  --border-secondary: #d1d5db;
 
-  /* Glassmorphism */
+  /* Light mode gradients */
+  --gradient-start: #f0f9ff;
+  --gradient-end: #e0f2fe;
+
+  /* Glassmorphism - Light */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(0, 0, 0, 0.1);
+
+  /* Scrollbar - Light */
+  --scrollbar-track: rgba(243, 244, 246, 0.5);
+  --scrollbar-thumb: rgba(156, 163, 175, 0.5);
+  --scrollbar-thumb-hover: rgba(107, 114, 128, 0.7);
+}
+
+.dark {
+  /* Dark Mode Colors (Purple theme) */
+  --bg-primary: #1a0f3d;
+  --bg-secondary: #2D1B69;
+  --bg-tertiary: #3d2475;
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.8);
+  --text-tertiary: rgba(255, 255, 255, 0.6);
+  --border-primary: rgba(139, 92, 246, 0.2);
+  --border-secondary: rgba(139, 92, 246, 0.3);
+
+  /* Dark mode gradients */
+  --gradient-start: #2D1B69;
+  --gradient-end: #1a0f3d;
+
+  /* Glassmorphism - Dark */
   --glass-bg: rgba(255, 255, 255, 0.08);
   --glass-border: rgba(139, 92, 246, 0.2);
+
+  /* Scrollbar - Dark */
+  --scrollbar-track: rgba(26, 15, 61, 0.5);
+  --scrollbar-thumb: rgba(139, 92, 246, 0.3);
+  --scrollbar-thumb-hover: rgba(139, 92, 246, 0.5);
 }
 
 * {
@@ -32,30 +68,31 @@ html {
 
 body {
   min-height: 100vh;
-  background: linear-gradient(135deg, #2D1B69 0%, #1a0f3d 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+  color: var(--text-primary);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
-/* Custom scrollbar for dark theme */
+/* Custom scrollbar with theme support */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(26, 15, 61, 0.5);
+  background: var(--scrollbar-track);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(139, 92, 246, 0.3);
+  background: var(--scrollbar-thumb);
   border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 92, 246, 0.5);
+  background: var(--scrollbar-thumb-hover);
 }

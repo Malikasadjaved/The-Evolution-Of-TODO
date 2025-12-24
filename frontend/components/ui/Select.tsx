@@ -16,6 +16,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 
 export interface SelectOption {
   value: string
@@ -115,27 +116,73 @@ export const Select: React.FC<SelectProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [focusedIndex, setFocusedIndex] = useState(-1)
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
+  const [isMounted, setIsMounted] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // Check if component is mounted (for portal)
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   // Get selected option label
   const selectedOption = options.find((opt) => opt.value === value)
   const displayValue = selectedOption?.label || placeholder
 
-  // Close dropdown when clicking outside
+  // Calculate dropdown position when opening
+  useEffect(() => {
+    if (isOpen && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect()
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+      })
+    }
+  }, [isOpen])
+
+  // Close dropdown when clicking outside (use click instead of mousedown to allow onClick to fire first)
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
         containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
+        !containerRef.current.contains(event.target as Node) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
       ) {
         setIsOpen(false)
       }
     }
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
+      // Use 'click' instead of 'mousedown' to allow onClick handlers to fire first
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [isOpen])
+
+  // Recalculate position on scroll/resize
+  useEffect(() => {
+    if (!isOpen) return
+
+    const updatePosition = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect()
+        setDropdownPosition({
+          top: rect.bottom + window.scrollY,
+          left: rect.left + window.scrollX,
+          width: rect.width,
+        })
+      }
+    }
+
+    window.addEventListener('scroll', updatePosition, true)
+    window.addEventListener('resize', updatePosition)
+
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true)
+      window.removeEventListener('resize', updatePosition)
     }
   }, [isOpen])
 
@@ -198,22 +245,23 @@ export const Select: React.FC<SelectProps> = ({
   }
 
   const triggerClasses = [
-    'bg-white/5',
+    'bg-white/5 dark:bg-white/5',
     'border',
-    error ? 'border-red-400' : 'border-purple-400/30',
+    error ? 'border-red-400' : 'border-purple-400/30 dark:border-purple-400/30',
     'rounded-lg',
     'px-3 py-2',
-    'text-white',
+    'text-gray-900 dark:text-white',
     'transition-all duration-300',
     'focus:outline-none',
     'focus:ring-2',
     error ? 'focus:ring-red-400/50' : 'focus:ring-purple-400/50',
     error ? 'focus:border-red-400' : 'focus:border-purple-400',
     'cursor-pointer',
+    'select-none',
     'disabled:opacity-50 disabled:cursor-not-allowed',
     'flex items-center justify-between gap-2',
     fullWidth ? 'w-full' : '',
-    !selectedOption && 'text-gray-400',
+    !selectedOption && 'text-gray-400 dark:text-gray-400',
     className,
   ]
     .filter(Boolean)
@@ -259,39 +307,52 @@ export const Select: React.FC<SelectProps> = ({
         </svg>
       </div>
 
-      {/* Dropdown */}
-      {isOpen && (
-        <div
-          ref={dropdownRef}
-          className="absolute z-50 top-full mt-1 w-full bg-purple-900/95 backdrop-blur-xl border border-purple-400/20 rounded-lg shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
-          role="listbox"
-        >
-          {options.map((option, index) => (
-            <div
-              key={option.value}
-              className={[
-                'px-3 py-2',
-                'cursor-pointer',
-                'transition-colors duration-150',
-                'text-white',
-                option.disabled
-                  ? 'opacity-50 cursor-not-allowed'
-                  : 'hover:bg-purple-500/20',
-                focusedIndex === index && 'bg-purple-500/20',
-                value === option.value && 'bg-purple-500/30 font-medium',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-              onClick={() => handleOptionClick(option)}
-              onMouseEnter={() => setFocusedIndex(index)}
-              role="option"
-              aria-selected={value === option.value}
-            >
-              {option.label}
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Dropdown (rendered as portal to avoid z-index issues) */}
+      {isOpen && isMounted && typeof window !== 'undefined' &&
+        createPortal(
+          <div
+            ref={dropdownRef}
+            className="fixed z-[99999] bg-white/95 dark:bg-purple-900/95 backdrop-blur-xl border border-gray-200 dark:border-purple-400/20 rounded-lg shadow-2xl overflow-hidden select-none"
+            style={{
+              top: `${dropdownPosition.top}px`,
+              left: `${dropdownPosition.left}px`,
+              width: `${dropdownPosition.width}px`,
+              marginTop: '4px',
+              userSelect: 'none',
+              cursor: 'default',
+            }}
+            role="listbox"
+          >
+            {options.map((option, index) => (
+              <div
+                key={option.value}
+                className={[
+                  'px-3 py-2',
+                  'cursor-pointer',
+                  'transition-colors duration-150',
+                  'text-gray-900 dark:text-white',
+                  'select-none',
+                  option.disabled
+                    ? 'opacity-50 cursor-not-allowed'
+                    : 'hover:bg-purple-100 dark:hover:bg-purple-500/20',
+                  focusedIndex === index && 'bg-purple-100 dark:bg-purple-500/20',
+                  value === option.value && 'bg-purple-200 dark:bg-purple-500/30 font-medium',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                onClick={() => handleOptionClick(option)}
+                onMouseEnter={() => setFocusedIndex(index)}
+                role="option"
+                aria-selected={value === option.value}
+                style={{ userSelect: 'none', cursor: 'pointer' }}
+              >
+                {option.label}
+              </div>
+            ))}
+          </div>,
+          document.body
+        )
+      }
 
       {/* Error Message */}
       {error && (

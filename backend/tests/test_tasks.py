@@ -644,6 +644,70 @@ async def test_toggle_status_other_user_returns_403(
     assert task.completed_at is None, "completed_at should still be None"
 
 
+@pytest.mark.asyncio
+async def test_mark_task_complete_endpoint(
+    client: AsyncClient,
+    test_jwt_token: str,
+    test_db_session: Session,
+):
+    """
+    Test PATCH /api/{user_id}/tasks/{task_id}/complete endpoint (Phase II documentation requirement).
+
+    Scenario:
+    - User A creates an incomplete task
+    - User A marks task complete using /complete endpoint
+    - Task status should toggle to COMPLETE
+    - completed_at should be set
+
+    This verifies:
+    - /complete endpoint matches Phase II documentation
+    - Toggles between INCOMPLETE and COMPLETE
+    - Sets completed_at timestamp correctly
+    """
+    # Create incomplete task for User A
+    task = Task(
+        user_id="test_user_123",
+        title="Task for /complete endpoint",
+        description="Testing documentation-compliant endpoint",
+        status=TaskStatus.INCOMPLETE,
+        priority=TaskPriority.MEDIUM,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
+    )
+    test_db_session.add(task)
+    test_db_session.commit()
+    test_db_session.refresh(task)
+
+    # Mark task as complete using /complete endpoint
+    response = await client.patch(
+        f"/api/test_user_123/tasks/{task.id}/complete",
+        headers={"Authorization": f"Bearer {test_jwt_token}"},
+    )
+
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+
+    updated_task = response.json()
+    assert updated_task["id"] == task.id
+    assert updated_task["status"] == "COMPLETE"
+    assert updated_task["completed_at"] is not None, "completed_at should be set"
+
+    # Verify in database
+    test_db_session.refresh(task)
+    assert task.status == TaskStatus.COMPLETE
+    assert task.completed_at is not None
+
+    # Toggle back to incomplete
+    response = await client.patch(
+        f"/api/test_user_123/tasks/{task.id}/complete",
+        headers={"Authorization": f"Bearer {test_jwt_token}"},
+    )
+
+    assert response.status_code == 200
+    updated_task = response.json()
+    assert updated_task["status"] == "INCOMPLETE"
+    assert updated_task["completed_at"] is None
+
+
 # ============================================================================
 # User Story 6: Assign Task Priority (T103-T104)
 # ============================================================================

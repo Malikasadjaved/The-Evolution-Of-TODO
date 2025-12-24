@@ -238,7 +238,7 @@ export default function DashboardPage() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Top Bar */}
-        <div className="bg-purple-900/80 backdrop-blur-lg border-b border-purple-400/20 p-4">
+        <div className="bg-purple-900/80 dark:bg-purple-900/80 backdrop-blur-lg border-b border-purple-400/20 p-4 relative z-50">
           <div className="max-w-[1800px] mx-auto">
             {/* View Mode Tabs + Search + Filters */}
             <div className="flex items-center gap-4 mb-4">

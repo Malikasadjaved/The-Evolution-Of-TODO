@@ -37,7 +37,6 @@ app = FastAPI(
 )
 
 # Initialize database tables on startup
-
 create_tables()
 
 # Configure CORS

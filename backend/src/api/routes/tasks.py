@@ -440,3 +440,81 @@ async def toggle_task_status(
     session.refresh(task)
 
     return task
+
+
+# ============================================================================
+# PATCH /api/{user_id}/tasks/{task_id}/complete - Mark task as complete
+# ============================================================================
+
+
+@router.patch("/api/{user_id}/tasks/{task_id}/complete")
+async def mark_task_complete(
+    user_id: str,
+    task_id: int,
+    current_user: str = Depends(get_current_user),
+    session: Session = Depends(get_session),
+) -> Task:
+    """
+    Mark a task as complete (as per Phase II documentation).
+
+    This endpoint toggles task completion status:
+    - If INCOMPLETE → Mark as COMPLETE
+    - If COMPLETE → Mark as INCOMPLETE
+
+    Security:
+    - Requires valid JWT token
+    - user_id must match token user_id
+    - Task must belong to token user_id
+
+    Returns:
+        Task: Updated task object
+    """
+    # Authorization check
+    if user_id != current_user:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    # Fetch task (filter by token user_id)
+    statement = select(Task).where(Task.id == task_id, Task.user_id == current_user)
+    task = session.exec(statement).first()
+
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    # Toggle completion status
+    if task.status == TaskStatus.INCOMPLETE:
+        task.status = TaskStatus.COMPLETE
+        task.completed_at = datetime.utcnow()
+
+        # Handle recurring tasks
+        if task.recurrence != TaskRecurrence.NONE:
+            from datetime import timedelta
+
+            # Save completion time
+            task.last_completed_at = datetime.utcnow()
+
+            # Calculate next due_date based on recurrence type
+            if task.due_date:
+                if task.recurrence == TaskRecurrence.DAILY:
+                    task.due_date = task.due_date + timedelta(days=1)
+                elif task.recurrence == TaskRecurrence.WEEKLY:
+                    task.due_date = task.due_date + timedelta(days=7)
+                elif task.recurrence == TaskRecurrence.MONTHLY:
+                    task.due_date = task.due_date + timedelta(days=30)
+                elif task.recurrence == TaskRecurrence.YEARLY:
+                    task.due_date = task.due_date + timedelta(days=365)
+
+            # Reset status to INCOMPLETE for next occurrence
+            task.status = TaskStatus.INCOMPLETE
+            task.completed_at = None
+    else:
+        # If already complete, toggle back to incomplete
+        task.status = TaskStatus.INCOMPLETE
+        task.completed_at = None
+
+    task.updated_at = datetime.utcnow()
+
+    session.add(task)
+    session.commit()
+    session.refresh(task)
+
+    return task

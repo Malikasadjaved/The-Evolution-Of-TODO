@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:3000"
 
     # Debug mode (show detailed errors in responses)
-    debug: bool = False
+    debug: bool = True  # Temporarily True for debugging
 
     @field_validator("better_auth_secret")
     @classmethod
@@ -43,11 +43,11 @@ class Settings(BaseSettings):
     @field_validator("database_url")
     @classmethod
     def validate_database_url(cls, v: str) -> str:
-        """Validate DATABASE_URL is a PostgreSQL connection string."""
-        if not v.startswith("postgresql://"):
+        """Validate DATABASE_URL is a valid connection string."""
+        if not (v.startswith("postgresql://") or v.startswith("sqlite:///")):
             raise ValueError(
-                "DATABASE_URL must be a valid PostgreSQL connection string. "
-                "Expected format: postgresql://user:password@host:port/database"
+                "DATABASE_URL must be a valid database connection string. "
+                "Supported: postgresql:// or sqlite:///"
             )
         return v
 

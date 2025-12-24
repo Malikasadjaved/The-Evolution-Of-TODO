@@ -107,21 +107,45 @@ async def sign_up(request: SignUpRequest, session: Session = Depends(get_session
 @router.post("/sign-in", response_model=AuthResponse)
 async def sign_in(request: SignInRequest, session: Session = Depends(get_session)):
     """Login an existing user."""
-    # Find user by email
-    user = session.exec(select(User).where(User.email == request.email)).first()
+    print(f"DEBUG: Sign-in attempt for {request.email}")
+    try:
+        # Find user by email
+        user = session.exec(select(User).where(User.email == request.email)).first()
+        print(f"DEBUG: User found: {user is not None}")
 
-    if not user or not verify_password(request.password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Invalid email or password")
+        # Check if user exists and has a password_hash
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    logger.info(f"User signed in: {user.email}")
+        # If user has no password_hash (created by Better Auth), reject backend sign-in
+        if not user.password_hash:
+            raise HTTPException(status_code=401, detail="Please use the main login page")
 
-    # Generate JWT token
-    token = create_jwt_token(user.id, user.email)
+        # Verify password
+        if not verify_password(request.password, user.password_hash):
+            raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    return AuthResponse(
-        token=token,
-        user={"id": user.id, "email": user.email, "name": user.name},
-    )
+        logger.info(f"User signed in: {user.email}")
+
+        # Generate JWT token
+        token = create_jwt_token(user.id, user.email)
+
+        return AuthResponse(
+            token=token,
+            user={"id": user.id, "email": user.email, "name": user.name},
+        )
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions
+    except Exception as e:
+        logger.error(f"Sign-in error: {type(e).__name__}: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Sign-in failed: {str(e)}")
+
+
+@router.get("/test")
+async def test():
+    """Test endpoint."""
+    print("DEBUG: Test endpoint hit!")
+    return {"status": "working"}
 
 
 @router.post("/sign-out")

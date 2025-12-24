@@ -58,6 +58,7 @@ class User(SQLModel, table=True):
     id: str = Field(primary_key=True)  # UUID from Better Auth
     email: str = Field(unique=True, index=True, max_length=255)
     name: str = Field(max_length=255)
+    password_hash: Optional[str] = Field(default=None, max_length=255)  # Hashed password (optional, for backend auth)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     # Relationships

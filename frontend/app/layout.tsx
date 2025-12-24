@@ -14,6 +14,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState } from 'react'
 import './globals.css'
 import { ToastProvider } from '@/components/ui/Toast'
+import { ThemeProvider } from '@/hooks/useTheme'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 export default function RootLayout({
   children,
@@ -43,13 +45,14 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <QueryClientProvider client={queryClient}>
-          <ToastProvider>
+        <ThemeProvider>
+          <QueryClientProvider client={queryClient}>
+            <ToastProvider>
             {/* Minimal Top Navigation */}
-            <nav className="h-[60px] bg-purple-900/80 backdrop-blur-lg border-b border-purple-400/20 px-6 flex items-center justify-between">
+            <nav className="h-[60px] bg-white/70 dark:bg-purple-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-purple-400/20 px-6 flex items-center justify-between transition-colors">
               {/* Logo */}
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-pink-500 to-orange-400 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 dark:from-pink-500 dark:to-orange-400 rounded-lg flex items-center justify-center shadow-lg">
                   <svg
                     className="w-5 h-5 text-white"
                     fill="none"
@@ -64,25 +67,29 @@ export default function RootLayout({
                     />
                   </svg>
                 </div>
-                <span className="text-lg font-semibold text-white">
+                <span className="text-lg font-semibold text-gray-900 dark:text-white">
                   Todo App
                 </span>
               </div>
 
-              {/* User Profile Placeholder */}
-              <div className="flex items-center gap-3 px-3 py-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer">
-                <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-pink-500 rounded-full border-2 border-purple-400/40" />
-                <div className="text-sm">
-                  <div className="font-medium text-white">User</div>
-                  <div className="text-white/60 text-xs">View Profile</div>
+              {/* Theme Toggle + User Profile */}
+              <div className="flex items-center gap-4">
+                <ThemeToggle />
+                <div className="flex items-center gap-3 px-3 py-2 bg-gray-100 dark:bg-white/5 rounded-lg hover:bg-gray-200 dark:hover:bg-white/10 transition-colors cursor-pointer">
+                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 dark:from-purple-600 dark:to-pink-500 rounded-full border-2 border-purple-400/40" />
+                  <div className="text-sm">
+                    <div className="font-medium text-gray-900 dark:text-white">User</div>
+                    <div className="text-gray-600 dark:text-white/60 text-xs">View Profile</div>
+                  </div>
                 </div>
               </div>
             </nav>
 
             {/* Main Content Area */}
             <main className="min-h-[calc(100vh-60px)]">{children}</main>
-          </ToastProvider>
-        </QueryClientProvider>
+            </ToastProvider>
+          </QueryClientProvider>
+        </ThemeProvider>
       </body>
     </html>
   )
