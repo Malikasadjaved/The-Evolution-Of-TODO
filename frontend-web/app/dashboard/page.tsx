@@ -13,6 +13,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Select'
 import { SearchBar } from '@/components/SearchBar'
@@ -247,33 +248,47 @@ export default function DashboardPage() {
           <div className="max-w-[1800px] mx-auto">
             {/* View Mode Tabs + Search + Filters */}
             <div className="flex items-center gap-4 mb-4">
-              {/* View Mode Tabs */}
-              <div className="flex gap-2">
+              {/* View Mode Tabs with Sliding Indicator */}
+              <div className="flex gap-2 bg-white/5 p-1 rounded-lg relative">
                 <button
                   onClick={() => setViewMode('board')}
                   className={`
-                    px-4 py-2 rounded-lg font-medium transition-all
+                    relative px-4 py-2 rounded-lg font-medium transition-colors z-10
                     ${
                       viewMode === 'board'
-                        ? 'bg-gradient-to-r from-pink-500 to-orange-400 text-white shadow-lg shadow-pink-500/50'
-                        : 'bg-white/5 text-white/60 hover:bg-white/10'
+                        ? 'text-white'
+                        : 'text-white/60 hover:text-white/80'
                     }
                   `}
                 >
-                  Board
+                  {viewMode === 'board' && (
+                    <motion.div
+                      layoutId="viewModeIndicator"
+                      className="absolute inset-0 bg-gradient-to-r from-pink-500 to-orange-400 rounded-lg shadow-lg shadow-pink-500/50"
+                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <span className="relative z-10">Board</span>
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
                   className={`
-                    px-4 py-2 rounded-lg font-medium transition-all
+                    relative px-4 py-2 rounded-lg font-medium transition-colors z-10
                     ${
                       viewMode === 'list'
-                        ? 'bg-gradient-to-r from-pink-500 to-orange-400 text-white shadow-lg shadow-pink-500/50'
-                        : 'bg-white/5 text-white/60 hover:bg-white/10'
+                        ? 'text-white'
+                        : 'text-white/60 hover:text-white/80'
                     }
                   `}
                 >
-                  List
+                  {viewMode === 'list' && (
+                    <motion.div
+                      layoutId="viewModeIndicator"
+                      className="absolute inset-0 bg-gradient-to-r from-pink-500 to-orange-400 rounded-lg shadow-lg shadow-pink-500/50"
+                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <span className="relative z-10">List</span>
                 </button>
               </div>
 
@@ -528,10 +543,11 @@ export default function DashboardPage() {
                             </p>
                           </div>
                         ) : (
-                          column.tasks?.map((task) => (
+                          column.tasks?.map((task, index) => (
                             <TaskCard
                               key={task.id}
                               task={task}
+                              index={index}
                               onClick={() => handleEditTask(task)}
                               onDelete={handleDeleteTask}
                               onToggleStatus={handleToggleStatus}
