@@ -89,6 +89,285 @@ To-do-app/  (Monorepo Root)
 
 ---
 
+## 🚀 HOW TO RUN THIS PROJECT (Quick Start)
+
+> **📌 FOR CLAUDE: When user says "run the project", follow these exact steps**
+
+### **Current Project Status** (Last Updated: 2025-12-28)
+- ✅ **Backend (FastAPI)**: Fully functional, database connected
+- ✅ **Frontend Web (Next.js)**: Modern UI/UX with animations, fully working
+- ✅ **Frontend Chatbot (React)**: AI assistant with MCP server, working
+- ✅ **Database**: Neon PostgreSQL (cloud-hosted, always available)
+- ✅ **Modern UI/UX**: Framer Motion animations, glassmorphism design
+
+### **Three Services to Run:**
+
+#### **1. Backend (FastAPI REST API + MCP Server)**
+```bash
+# Location: D:\new project\Hackthon 2\To-do-app
+cd backend
+
+# Activate virtual environment (Windows)
+./venv/Scripts/python.exe -m uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
+
+# Expected output:
+# ✓ Uvicorn running on http://0.0.0.0:8000
+# ✓ Application startup complete
+```
+
+**Port**: `http://localhost:8000`
+**Health Check**: `http://localhost:8000/health`
+
+#### **2. Frontend Web (Next.js - Phase 2)**
+```bash
+# Location: D:\new project\Hackthon 2\To-do-app
+cd frontend-web
+
+# Start development server
+npm run dev
+
+# Expected output:
+# ✓ Next.js 16.0.10 (Turbopack)
+# ✓ Local: http://localhost:3000
+# ✓ Ready in 3-4s
+```
+
+**Port**: `http://localhost:3000`
+**Features**: Task management, calendar, animations, modern UI
+
+#### **3. Frontend Chatbot (React - Phase 3)**
+```bash
+# Location: D:\new project\Hackthon 2\To-do-app
+cd frontend-chatbot
+
+# Start development server
+npm run dev
+
+# Expected output:
+# ✓ Vite running on http://localhost:3001
+# ✓ Ready in 1-2s
+```
+
+**Port**: `http://localhost:3001`
+**Features**: AI chat assistant, natural language task creation
+
+---
+
+### **Complete Startup Sequence (Copy-Paste)**
+
+**Option 1: Run All Services Manually (3 terminals)**
+
+Terminal 1 (Backend):
+```bash
+cd "D:\new project\Hackthon 2\To-do-app\backend"
+./venv/Scripts/python.exe -m uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+Terminal 2 (Frontend Web):
+```bash
+cd "D:\new project\Hackthon 2\To-do-app\frontend-web"
+npm run dev
+```
+
+Terminal 3 (Frontend Chatbot):
+```bash
+cd "D:\new project\Hackthon 2\To-do-app\frontend-chatbot"
+npm run dev
+```
+
+**Option 2: Use Claude Background Tasks (Recommended)**
+```bash
+# Claude will run these in background and monitor output
+Bash(run_in_background=true) for each service
+```
+
+---
+
+### **Port Summary (For Reference)**
+
+| Service | Port | URL | Status |
+|---------|------|-----|--------|
+| **Backend API** | 8000 | http://localhost:8000 | ✅ Running |
+| **Frontend Web** | 3000 | http://localhost:3000 | ✅ Running |
+| **Chatbot UI** | 3001 | http://localhost:3001 | ✅ Running |
+| **Database** | N/A | Neon PostgreSQL (cloud) | ✅ Always available |
+
+---
+
+### **Common Issues & Fixes**
+
+#### **Issue 1: Port Already in Use**
+```bash
+# Error: Address already in use (port 3000, 3001, or 8000)
+
+# Fix (Windows):
+# Find process using the port
+netstat -ano | findstr :3000
+
+# Kill the process
+taskkill /PID <process-id> /F
+
+# Or use PowerShell
+Stop-Process -Id <process-id> -Force
+```
+
+#### **Issue 2: Backend Path Issues**
+```bash
+# Error: venvScriptspython.exe: command not found
+
+# Fix: Use forward slashes
+./venv/Scripts/python.exe (not venv\Scripts\python.exe)
+```
+
+#### **Issue 3: Next.js Lock File**
+```bash
+# Error: Unable to acquire lock at .next/dev/lock
+
+# Fix:
+rm -f "frontend-web/.next/dev/lock"
+# Then restart: npm run dev
+```
+
+#### **Issue 4: Module Not Found**
+```bash
+# Error: Cannot find module 'framer-motion'
+
+# Fix (in frontend-web):
+npm install --legacy-peer-deps
+
+# This handles React 19 peer dependency conflicts
+```
+
+#### **Issue 5: Chatbot Date Issues**
+```bash
+# Issue: Chatbot adds tasks with wrong dates (April 2023)
+
+# Status: ✅ FIXED
+# Fix applied: backend/src/api/services/agent_client.py
+# System prompt now includes current datetime
+```
+
+---
+
+### **Verification Checklist (After Starting)**
+
+Use these URLs to verify everything is running:
+
+- [ ] Backend health: http://localhost:8000/health → Should return `{"status":"healthy"}`
+- [ ] Backend API docs: http://localhost:8000/docs → Swagger UI should load
+- [ ] Frontend web: http://localhost:3000 → Landing page should show
+- [ ] Frontend dashboard: http://localhost:3000/dashboard → After login
+- [ ] Chatbot UI: http://localhost:3001 → Chat interface should load
+
+---
+
+### **Current Branch Information**
+
+**Active Branches:**
+- `002-ai-chatbot-mcp` - Main development branch (Phase 3 work)
+- `ui-ux-modern-redesign` - Modern UI/UX redesign (merged or in progress)
+- `backup-before-ui-redesign` - Safe restore point
+
+**To Check Current Branch:**
+```bash
+git branch --show-current
+```
+
+**To Switch Branches:**
+```bash
+git checkout 002-ai-chatbot-mcp
+```
+
+---
+
+### **What's Working (Test These Features)**
+
+#### **Frontend Web (localhost:3000)**
+1. ✅ **Authentication**: Sign up, login, logout
+2. ✅ **Task Management**: Create, edit, delete, toggle status
+3. ✅ **Calendar Widget**: Month navigation, task indicators, animations
+4. ✅ **Filters**: Search, priority, tags, status
+5. ✅ **Animations**: Framer Motion throughout (task cards, buttons, calendar)
+6. ✅ **Modern UI**: Glassmorphism, gradient mesh, ripple effects
+
+#### **Chatbot (localhost:3001)**
+1. ✅ **Natural Language**: "Add task tomorrow: Buy groceries"
+2. ✅ **Date Parsing**: Correctly interprets "tomorrow", "next week", etc.
+3. ✅ **MCP Integration**: Uses MCP tools (add_task, list_tasks, etc.)
+4. ✅ **Context Awareness**: Knows current date and time
+
+#### **Backend (localhost:8000)**
+1. ✅ **REST API**: All CRUD endpoints working
+2. ✅ **JWT Authentication**: Better Auth integration
+3. ✅ **Database**: Neon PostgreSQL connected
+4. ✅ **MCP Server**: Serves chatbot requests
+
+---
+
+### **Known Issues (As of Dec 28, 2025)**
+
+#### **In Progress:**
+- ⚠️ **Button Standardization**: Some buttons use native `<button>` instead of Button component
+- ⚠️ **Typography Scale**: Font sizes need harmonization (in progress)
+- ⚠️ **Touch Targets**: Need 44px minimum height for mobile
+
+#### **Planned:**
+- 📋 Design tokens system
+- 📋 IconButton component variant
+- 📋 Custom font loading (Inter or similar)
+
+---
+
+### **Environment Variables (Already Configured)**
+
+**Backend** (`.env` in `backend/`):
+```bash
+DATABASE_URL=<Neon PostgreSQL URL>
+BETTER_AUTH_SECRET=<43-char secret>
+BETTER_AUTH_URL=http://localhost:8000/api/auth
+FRONTEND_URL=http://localhost:3000
+OPENAI_API_KEY=<Your OpenAI key>
+```
+
+**Frontend Web** (`.env.local` in `frontend-web/`):
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:8000
+BETTER_AUTH_SECRET=<same 43-char secret>
+BETTER_AUTH_URL=http://localhost:3000/api/auth
+```
+
+**Frontend Chatbot** (`.env` in `frontend-chatbot/`):
+```bash
+VITE_API_URL=http://localhost:8000
+VITE_OPENAI_API_KEY=<Your OpenAI key>
+```
+
+---
+
+### **For Future Claude Sessions**
+
+**When user says "run the project":**
+1. Start backend in background: `./venv/Scripts/python.exe -m uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000`
+2. Start frontend-web in background: `npm run dev` (in frontend-web/)
+3. Start frontend-chatbot in background: `npm run dev` (in frontend-chatbot/)
+4. Monitor outputs for errors
+5. Report all 3 URLs to user
+6. Watch for port conflicts and fix automatically
+
+**When user says "push changes":**
+1. Check current branch: `git branch --show-current`
+2. Stage changes: `git add .`
+3. Create descriptive commit with attribution footer
+4. Push to origin with current branch name
+
+**When user reports errors:**
+1. Read the relevant log output
+2. Check common issues section above
+3. Apply fixes automatically
+4. Restart affected service
+
+---
+
 ## For Contributors
 
 If you want to contribute to this project using Claude Code, follow these guidelines:
