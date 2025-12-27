@@ -87,4 +87,15 @@ frontend/out/
 frontend/tsconfig.tsbuildinfo
 
 # Backend Virtual Environment
-backend/venv/ 
+backend/venv/
+
+# Environment Variables (CRITICAL: Contains secrets)
+# Added 2025-12-26 - Security Audit T119
+.env
+backend/.env
+frontend-web/.env
+frontend-chatbot/.env
+**/.env
+
+# Allow .env.example (safe to commit - placeholders only)
+!**/.env.example 

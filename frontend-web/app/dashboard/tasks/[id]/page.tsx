@@ -185,20 +185,10 @@ export default function TaskDetailPage() {
           {/* Status Badge */}
           <div className="mb-6">
             <Badge
-              variant={
-                task.status === 'COMPLETE'
-                  ? 'low'
-                  : task.status === 'IN_PROGRESS'
-                    ? 'medium'
-                    : 'info'
-              }
+              variant={task.status === 'COMPLETE' ? 'low' : 'info'}
               size="lg"
             >
-              {task.status === 'COMPLETE'
-                ? '✓ Complete'
-                : task.status === 'IN_PROGRESS'
-                  ? 'In Progress'
-                  : 'Incomplete'}
+              {task.status === 'COMPLETE' ? '✓ Complete' : 'Incomplete'}
             </Badge>
           </div>
 
@@ -221,7 +211,7 @@ export default function TaskDetailPage() {
             {/* Completion Date */}
             <div>
               <h3 className="text-sm font-medium text-white/50 mb-2">Completed At</h3>
-              <p className="text-white text-lg">{formatDateTime(task.completed_at)}</p>
+              <p className="text-white text-lg">{formatDateTime(task.last_completed_at)}</p>
             </div>
 
             {/* Created Date */}
@@ -275,6 +265,7 @@ export default function TaskDetailPage() {
       {/* Edit Modal */}
       {isEditModalOpen && (
         <TaskForm
+          isOpen={isEditModalOpen}
           task={task}
           onClose={() => setIsEditModalOpen(false)}
           userId={user.id}
@@ -284,11 +275,13 @@ export default function TaskDetailPage() {
       {/* Delete Confirmation Dialog */}
       {isDeleteDialogOpen && (
         <ConfirmDialog
+          isOpen={isDeleteDialogOpen}
           title="Delete Task"
           message={`Are you sure you want to delete "${task.title}"? This action cannot be undone.`}
-          confirmLabel="Delete"
+          confirmText="Delete"
           onConfirm={handleDelete}
-          onCancel={() => setIsDeleteDialogOpen(false)}
+          onClose={() => setIsDeleteDialogOpen(false)}
+          variant="danger"
         />
       )}
     </div>

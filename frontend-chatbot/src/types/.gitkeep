@@ -1,0 +1,2 @@
+# This file ensures the types directory is tracked by git
+# Will contain: api.ts (ChatRequest, ChatResponse, Message interfaces) - Task T097

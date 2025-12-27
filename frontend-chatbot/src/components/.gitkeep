@@ -1,0 +1,2 @@
+# This file ensures the components directory is tracked by git
+# Will contain: ChatInterface.tsx, MessageList.tsx, InputBox.tsx (Task T094)

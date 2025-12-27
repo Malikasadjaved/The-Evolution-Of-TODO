@@ -1,0 +1,2 @@
+# This file ensures the pages directory is tracked by git
+# Will contain: index.tsx (main chat page) - Task T096

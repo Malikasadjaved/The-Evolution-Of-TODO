@@ -1,0 +1,130 @@
+# =============================================================================
+# .dockerignore - Exclude files from Docker build context
+# =============================================================================
+# Purpose: Reduce build time and image size by excluding unnecessary files
+# =============================================================================
+
+# Environment Variables (CRITICAL: Contains secrets)
+.env
+.env.*
+!.env.example
+
+# Git repository (not needed in container)
+.git/
+.gitignore
+.gitattributes
+
+# Python cache and bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+.Python
+build/
+dist/
+*.whl
+
+# Virtual environments (install fresh in container)
+venv/
+ENV/
+env/
+.venv
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+pytest.ini
+.pytest.ini
+
+# Tests (not needed in production)
+tests/
+test_*.py
+*_test.py
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Documentation (not needed in runtime)
+*.md
+!README.md
+docs/
+history/
+specs/
+
+# Development scripts
+scripts/
+.specify/
+.spec-kit/
+
+# Alembic migrations (handled separately)
+alembic/
+alembic.ini
+
+# Frontend code (this is backend Dockerfile)
+../frontend-web/
+../frontend-chatbot/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*.orig
+nul
+
+# Development/Debug files
+AUTH_TEST_RESULTS.md
+AUTH_TROUBLESHOOTING.md
+REGENERATE_SECRETS.md
+CLAUDE_OUTPUT.md
+test-auth-flow.md
+FILES_TO_PUSH.md
+GITHUB_PUSH_CHECKLIST.md
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Linting
+.flake8
+.pylintrc
+
+# Configuration files (use environment variables instead)
+pyproject.toml
+.python-version
+
+# SQLite database (use PostgreSQL in production)
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+data/
+
+# Docker files (don't need Dockerfile inside container)
+Dockerfile
+.dockerignore
+docker-compose.yml
+docker-compose.*.yml
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+
+# Security audit artifacts
+docs/security-audit.md

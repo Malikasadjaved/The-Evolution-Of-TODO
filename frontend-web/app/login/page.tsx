@@ -30,12 +30,32 @@ export default function LoginPage() {
     {}
   )
 
+  // Get redirect_to parameter from URL synchronously to avoid race condition
+  const getRedirectUrl = () => {
+    if (typeof window === 'undefined') return '/dashboard'
+    const urlParams = new URLSearchParams(window.location.search)
+    const redirectParam = urlParams.get('redirect_to')
+    return redirectParam ? decodeURIComponent(redirectParam) : '/dashboard'
+  }
+
+  const [redirectTo] = useState<string>(getRedirectUrl())
+
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      router.push('/dashboard')
+      // Redirect to the specified URL or default to dashboard
+      if (redirectTo.startsWith('http://localhost:3001')) {
+        // External redirect to chatbot - pass auth token for session sharing
+        const token = localStorage.getItem('auth_token')
+        const chatbotUrl = token
+          ? `${redirectTo}${redirectTo.includes('?') ? '&' : '?'}auth_token=${encodeURIComponent(token)}`
+          : redirectTo
+        window.location.href = chatbotUrl
+      } else {
+        router.push(redirectTo)
+      }
     }
-  }, [user, router])
+  }, [user, router, redirectTo])
 
   // Validate form
   const validate = (): boolean => {
@@ -66,6 +86,9 @@ export default function LoginPage() {
     try {
       await signIn({ email, password })
       toast.success('Logged in successfully!')
+
+      // After successful login, redirect will be handled by useEffect
+      // when user state updates (includes automatic token passing for chatbot)
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Sign in failed'

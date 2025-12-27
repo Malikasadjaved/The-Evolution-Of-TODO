@@ -2,7 +2,7 @@
  * Dashboard Page - Kanban Board
  *
  * Full-featured task management dashboard with:
- * - 3-column Kanban board (INCOMPLETE | IN_PROGRESS | COMPLETE)
+ * - 2-column Kanban board (INCOMPLETE | COMPLETE)
  * - Task cards with glassmorphism styling
  * - Search and filter functionality
  * - Right sidebar with calendar and upcoming tasks
@@ -29,7 +29,7 @@ import { useNotifications } from '@/hooks/useNotifications'
 import type { Task } from '@/types/api'
 
 type ViewMode = 'board' | 'list'
-type TaskStatus = 'INCOMPLETE' | 'IN_PROGRESS' | 'COMPLETE'
+type TaskStatus = 'INCOMPLETE' | 'COMPLETE'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -148,6 +148,20 @@ export default function DashboardPage() {
     setTaskToDelete(undefined)
   }
 
+  // Handler: Open Chat Assistant with authentication token
+  const handleOpenChatAssistant = () => {
+    // Get JWT token from localStorage
+    const token = localStorage.getItem('auth_token')
+
+    if (token) {
+      // Pass token to chatbot via URL parameter for session sharing
+      window.open(`http://localhost:3001?auth_token=${encodeURIComponent(token)}`, '_blank')
+    } else {
+      // No token - open chatbot and let it handle auth redirect
+      window.open('http://localhost:3001', '_blank')
+    }
+  }
+
   // Handler: Toggle task status (complete/incomplete)
   const handleToggleStatus = async (
     taskId: number,
@@ -190,9 +204,6 @@ export default function DashboardPage() {
   const incompleteTasks = filteredTasks?.filter(
     (task) => task.status === 'INCOMPLETE'
   )
-  const inProgressTasks = filteredTasks?.filter(
-    (task) => task.status === 'IN_PROGRESS'
-  )
   const completeTasks = filteredTasks?.filter(
     (task) => task.status === 'COMPLETE'
   )
@@ -216,13 +227,6 @@ export default function DashboardPage() {
       tasks: incompleteTasks,
       color: 'border-red-400/30',
       dotColor: 'bg-red-400',
-    },
-    {
-      status: 'IN_PROGRESS',
-      title: 'In Progress',
-      tasks: inProgressTasks,
-      color: 'border-yellow-400/30',
-      dotColor: 'bg-yellow-400',
     },
     {
       status: 'COMPLETE',
@@ -345,6 +349,27 @@ export default function DashboardPage() {
                 </Button>
               )}
 
+              {/* Chat Assistant Button */}
+              <button
+                onClick={handleOpenChatAssistant}
+                className="px-4 py-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-lg font-medium hover:from-purple-600 hover:to-blue-600 transition-all shadow-lg shadow-purple-500/30 flex items-center"
+              >
+                <svg
+                  className="w-5 h-5 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+                  />
+                </svg>
+                Chat Assistant
+              </button>
+
               {/* Create Task Button */}
               <Button variant="primary" onClick={handleCreateTask}>
                 <svg
@@ -376,12 +401,6 @@ export default function DashboardPage() {
                 <span className="text-white/60">To Do:</span>
                 <span className="text-red-400 font-semibold">
                   {incompleteTasks?.length || 0}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-white/60">In Progress:</span>
-                <span className="text-yellow-400 font-semibold">
-                  {inProgressTasks?.length || 0}
                 </span>
               </div>
               <div className="flex items-center gap-2">

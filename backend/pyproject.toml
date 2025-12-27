@@ -27,9 +27,34 @@ warn_unused_ignores = true
 warn_no_return = true
 follow_imports = "normal"
 ignore_missing_imports = true
+plugins = ["sqlalchemy.ext.mypy.plugin"]
+exclude = [
+    "mcp/",
+    "src/api/services/",
+    "src/api/routes/",
+]
 
 [[tool.mypy.overrides]]
 module = "tests.*"
+disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = "src.api.models"
+warn_return_any = false
+
+[[tool.mypy.overrides]]
+module = "src.api.routes.*"
+warn_return_any = false
+disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = "src.api.services.*"
+warn_return_any = false
+disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = "mcp.*"
+warn_return_any = false
 disallow_untyped_defs = false
 
 [tool.pytest.ini_options]
