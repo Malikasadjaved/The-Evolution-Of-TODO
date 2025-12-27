@@ -3,7 +3,8 @@
 @tailwind utilities;
 
 /**
- * Purple Kanban Design System - Global Styles with Dark/Light Mode
+ * Purple Kanban Design System - Modern 2025 Gradient Mesh
+ * Enhanced with animations, glassmorphism, and neumorphic effects
  */
 
 :root {
@@ -66,9 +67,11 @@ html {
   height: 100%;
 }
 
+/* Modern Animated Gradient Mesh Background */
 body {
   min-height: 100vh;
-  background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+  position: relative;
+  overflow-x: hidden;
   color: var(--text-primary);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
@@ -78,7 +81,111 @@ body {
   transition: background 0.3s ease, color 0.3s ease;
 }
 
-/* Custom scrollbar with theme support */
+/* Base gradient background */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+  background: linear-gradient(135deg, #1a0f3d 0%, #2D1B69 50%, #1a0f3d 100%);
+}
+
+/* Floating gradient orbs (animated mesh effect) */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(168, 85, 247, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(236, 72, 153, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
+  animation: floatingOrbs 20s ease-in-out infinite;
+}
+
+@keyframes floatingOrbs {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(10px, -10px) scale(1.05);
+  }
+  50% {
+    transform: translate(-5px, 10px) scale(0.95);
+  }
+  75% {
+    transform: translate(15px, 5px) scale(1.02);
+  }
+}
+
+/* Enhanced Glassmorphism */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  box-shadow:
+    0 8px 32px 0 rgba(139, 92, 246, 0.15),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Neumorphic shadow (soft 3D effect) */
+.neomorphic {
+  box-shadow:
+    8px 8px 16px rgba(0, 0, 0, 0.3),
+    -8px -8px 16px rgba(139, 92, 246, 0.05);
+}
+
+/* Shimmer loading animation */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.05) 75%
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Smooth page transitions */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms ease-out, transform 300ms ease-out;
+}
+
+.page-transition-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.page-transition-exit-active {
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: opacity 200ms ease-in, transform 200ms ease-in;
+}
+
+/* Custom scrollbar with gradient thumb */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -86,13 +193,31 @@ body {
 
 ::-webkit-scrollbar-track {
   background: var(--scrollbar-track);
+  border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border-radius: 5px;
+  background: linear-gradient(180deg, rgba(168, 85, 247, 0.5), rgba(236, 72, 153, 0.5));
+  border-radius: 10px;
+  transition: background 0.3s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover);
+  background: linear-gradient(180deg, rgba(168, 85, 247, 0.7), rgba(236, 72, 153, 0.7));
+}
+
+/* Glow text effect */
+.text-glow {
+  text-shadow:
+    0 0 10px rgba(168, 85, 247, 0.5),
+    0 0 20px rgba(168, 85, 247, 0.3),
+    0 0 30px rgba(168, 85, 247, 0.2);
+}
+
+/* Card hover glow */
+.card-glow-hover:hover {
+  box-shadow:
+    0 0 20px rgba(168, 85, 247, 0.3),
+    0 0 40px rgba(236, 72, 153, 0.2),
+    0 8px 32px rgba(139, 92, 246, 0.25);
 }
