@@ -34,8 +34,9 @@ export interface ButtonProps
    * - sm: Small (px-3 py-2, text-sm, 32px min-height) - Compact actions, mobile
    * - md: Medium (px-4 py-3, text-base, 40px min-height) - Default, most common
    * - lg: Large (px-6 py-4, text-lg, 48px min-height) - Primary CTAs
+   * - xl: Extra Large (px-8 py-5, text-xl, 56px min-height) - Hero sections, landing pages
    */
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'sm' | 'md' | 'lg' | 'xl'
 
   /**
    * Full width button
@@ -110,6 +111,8 @@ const getSizeClasses = (size: ButtonProps['size']): string => {
       return 'px-4 py-3 text-base min-h-[40px]'  // Default, 44px touch target
     case 'lg':
       return 'px-6 py-4 text-lg min-h-[48px]'  // Primary CTAs
+    case 'xl':
+      return 'px-8 py-5 text-xl min-h-[56px]'  // Hero sections, landing pages
     default:
       return getSizeClasses('md')
   }
