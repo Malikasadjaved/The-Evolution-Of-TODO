@@ -1,9 +1,9 @@
 /**
- * Button Component - Purple Kanban Design System
+ * Button Component - Blue Tech Design System
  *
  * Glassmorphism button with 4 variants:
- * - primary: Coral gradient with pink shadow glow
- * - secondary: Transparent with purple border
+ * - primary: Blue-Cyan gradient with cyan shadow glow
+ * - secondary: Transparent with cyan border
  * - danger: Solid red
  * - ghost: Transparent hover effect
  *
@@ -22,8 +22,8 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   /**
    * Button variant
-   * - primary: Coral gradient (default)
-   * - secondary: Purple border
+   * - primary: Blue-Cyan gradient (default)
+   * - secondary: Cyan border
    * - danger: Red solid
    * - ghost: Transparent
    */
@@ -66,17 +66,17 @@ const getVariantClasses = (variant: ButtonProps['variant']): string => {
   switch (variant) {
     case 'primary':
       return [
-        'bg-gradient-to-r from-pink-500 to-orange-400',
-        'hover:shadow-lg hover:shadow-pink-500/50',
+        'bg-gradient-to-r from-blue-600 to-cyan-500',
+        'hover:shadow-lg hover:shadow-cyan-500/50',
         'hover:-translate-y-0.5',
         'text-white',
       ].join(' ')
 
     case 'secondary':
       return [
-        'border border-purple-400',
+        'border border-cyan-400',
         'bg-transparent',
-        'hover:bg-purple-500/10',
+        'hover:bg-cyan-500/10',
         'text-white',
       ].join(' ')
 
