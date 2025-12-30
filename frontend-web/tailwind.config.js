@@ -8,6 +8,40 @@ module.exports = {
   ],
   theme: {
     extend: {
+      colors: {
+        // Extend with CSS variable colors for better consistency
+        accent: {
+          primary: 'var(--accent-primary)',
+          secondary: 'var(--accent-secondary)',
+          success: 'var(--accent-success)',
+          warning: 'var(--accent-warning)',
+          danger: 'var(--accent-danger)',
+          info: 'var(--accent-info)',
+        },
+        background: {
+          primary: 'var(--bg-primary)',
+          secondary: 'var(--bg-secondary)',
+          tertiary: 'var(--bg-tertiary)',
+        },
+        text: {
+          primary: 'var(--text-primary)',
+          secondary: 'var(--text-secondary)',
+          muted: 'var(--text-muted)',
+          tertiary: 'var(--text-tertiary)',
+        },
+        border: {
+          default: 'var(--border-default)',
+          focus: 'var(--border-focus)',
+          hover: 'var(--border-hover)',
+        },
+      },
+      backdropBlur: {
+        xs: '2px',
+        sm: '4px',
+        md: '12px',
+        lg: '20px',
+        xl: '40px',
+      },
       animation: {
         // Shimmer effect for loading skeletons
         shimmer: 'shimmer 2s infinite',

@@ -5,11 +5,14 @@
  * while content is loading.
  *
  * Features:
- * - Shimmer animation (modern gradient sweep effect)
+ * - Enhanced shimmer animation with left-to-right gradient sweep
  * - Glassmorphism design matching TaskCard
  * - Configurable count for multiple skeletons
  * - Responsive layout
+ * - Accessibility: Respects prefers-reduced-motion
  */
+
+'use client'
 
 interface LoadingSkeletonProps {
   count?: number

@@ -8,18 +8,20 @@
  * - Overdue Tasks (red)
  *
  * Features:
- * - Large 3xl font for numbers
+ * - Count-up number animations (easeOutQuart)
  * - Icon backgrounds with hover state transitions
  * - Trending indicators (up/down arrows)
  * - Color-coded by metric type
  * - Framer Motion stagger animations
  * - Responsive: 4 cols desktop, 2 cols tablet, 1 col mobile
+ * - Respects prefers-reduced-motion
  */
 
 'use client'
 
 import { motion } from 'framer-motion'
 import { Task } from '@/types/api'
+import { useCountUp } from '@/hooks/useCountUp'
 
 interface StatsGridProps {
   tasks: Task[] | undefined
@@ -64,10 +66,16 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ tasks }) => {
         new Date(task.due_date) < new Date()
     ).length || 0
 
+  // Animated values (count-up effect)
+  const animatedTotal = useCountUp(totalTasks, { duration: 1000 })
+  const animatedCompletedToday = useCountUp(completedToday, { duration: 1000 })
+  const animatedInProgress = useCountUp(inProgressTasks, { duration: 1000 })
+  const animatedOverdue = useCountUp(overdueTasks, { duration: 1000 })
+
   const stats: StatCard[] = [
     {
       title: 'Total Tasks',
-      value: totalTasks,
+      value: animatedTotal,
       icon: (
         <svg
           className="w-6 h-6"
@@ -83,16 +91,16 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ tasks }) => {
           />
         </svg>
       ),
-      gradient: 'from-blue-500/10 to-cyan-500/10',
-      iconBg: 'bg-blue-500/10 group-hover:bg-blue-500/20',
-      iconColor: 'text-blue-400',
+      gradient: 'indigo',
+      iconBg: 'bg-indigo-500/10 group-hover:bg-indigo-500/20',
+      iconColor: 'text-indigo-400',
       trendValue: 12,
       trendDirection: 'up',
       trendColor: 'text-green-400',
     },
     {
       title: 'Completed Today',
-      value: completedToday,
+      value: animatedCompletedToday,
       icon: (
         <svg
           className="w-6 h-6"
@@ -108,7 +116,7 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ tasks }) => {
           />
         </svg>
       ),
-      gradient: 'from-green-500/10 to-emerald-500/10',
+      gradient: 'green',
       iconBg: 'bg-green-500/10 group-hover:bg-green-500/20',
       iconColor: 'text-green-400',
       trendValue: 8,
@@ -117,7 +125,7 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ tasks }) => {
     },
     {
       title: 'In Progress',
-      value: inProgressTasks,
+      value: animatedInProgress,
       icon: (
         <svg
           className="w-6 h-6"
@@ -133,7 +141,7 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ tasks }) => {
           />
         </svg>
       ),
-      gradient: 'from-amber-500/10 to-yellow-500/10',
+      gradient: 'amber',
       iconBg: 'bg-amber-500/10 group-hover:bg-amber-500/20',
       iconColor: 'text-amber-400',
       trendValue: 5,
@@ -142,7 +150,7 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ tasks }) => {
     },
     {
       title: 'Overdue',
-      value: overdueTasks,
+      value: animatedOverdue,
       icon: (
         <svg
           className="w-6 h-6"
@@ -158,7 +166,7 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ tasks }) => {
           />
         </svg>
       ),
-      gradient: 'from-red-500/10 to-rose-500/10',
+      gradient: 'red',
       iconBg: 'bg-red-500/10 group-hover:bg-red-500/20',
       iconColor: 'text-red-400',
       trendValue: 2,
@@ -167,22 +175,26 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ tasks }) => {
     },
   ]
 
+  // Helper function to get gradient overlay CSS variable
+  const getGradientOverlay = (gradientType: string) => {
+    return `var(--gradient-${gradientType})`
+  }
+
   return (
-    <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <section
+      className="p-4 sm:p-6 grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6"
+      aria-label="Task statistics"
+      role="region"
+    >
       {stats.map((stat, index) => (
         <motion.div
           key={stat.title}
-          className={`
-            p-5 rounded-xl
-            bg-gradient-to-br ${stat.gradient}
-            dark:border-slate-700/50 light:border-gray-200
-            border
-            hover:border-blue-500/30
-            transition-all
-            group
-            cursor-pointer
-            backdrop-blur-sm
-          `}
+          className="glass-card-hover p-4 sm:p-6 rounded-xl relative overflow-hidden group cursor-pointer min-h-[140px] sm:min-h-[160px]"
+          style={{
+            background: `${getGradientOverlay(stat.gradient)}, var(--glass-bg)`,
+          }}
+          role="article"
+          aria-label={`${stat.title}: ${Math.round(stat.value)}`}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{
@@ -191,13 +203,19 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ tasks }) => {
             stiffness: 300,
             damping: 25,
           }}
-          whileHover={{ scale: 1.02, y: -2 }}
+          whileHover={{
+            scale: 1.02,
+            y: -2,
+            boxShadow: '0 8px 25px rgba(0, 0, 0, 0.3)',
+            transition: { duration: 0.3, ease: [0.4, 0, 0.2, 1] }
+          }}
           whileTap={{ scale: 0.98 }}
         >
           {/* Icon and Trend Indicator */}
-          <div className="flex items-start justify-between mb-3">
+          <div className="flex items-start justify-between mb-2 sm:mb-3 relative z-10">
             <div
-              className={`p-3 ${stat.iconBg} rounded-lg transition-colors duration-300`}
+              className={`p-2 sm:p-3 ${stat.iconBg} rounded-lg transition-colors duration-300`}
+              aria-hidden="true"
             >
               <div className={stat.iconColor}>{stat.icon}</div>
             </div>
@@ -227,33 +245,31 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ tasks }) => {
             )}
           </div>
 
-          {/* Value */}
-          <p className="text-3xl font-bold mb-1 dark:text-white light:text-gray-900">
-            {stat.value}
+          {/* Animated Value */}
+          <p className="text-2xl sm:text-3xl font-bold mb-1 relative z-10" style={{ color: 'var(--text-primary)' }}>
+            {Math.round(stat.value)}
           </p>
 
           {/* Label */}
-          <p className="text-sm dark:text-slate-400 light:text-gray-600">
+          <p className="text-xs sm:text-sm relative z-10" style={{ color: 'var(--text-secondary)' }}>
             {stat.title}
           </p>
 
-          {/* Trend Value (optional) */}
+          {/* Trend Value */}
           {stat.trendValue && (
-            <div className="mt-2 flex items-center gap-1">
-              <span
-                className={`text-xs font-medium ${stat.trendColor}`}
-              >
+            <div className="mt-2 flex items-center gap-1 relative z-10">
+              <span className={`text-xs font-medium ${stat.trendColor}`}>
                 {stat.trendDirection === 'up' ? '+' : '-'}
                 {stat.trendValue}%
               </span>
-              <span className="text-xs dark:text-slate-500 light:text-gray-500">
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
                 vs last week
               </span>
             </div>
           )}
         </motion.div>
       ))}
-    </div>
+    </section>
   )
 }
 

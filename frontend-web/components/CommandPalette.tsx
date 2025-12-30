@@ -111,11 +111,12 @@ export function CommandPalette({
 
   // Use external isOpen if provided, otherwise use internal state
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen
-  const setIsOpen = (value: boolean) => {
+  const setIsOpen = (value: boolean | ((prev: boolean) => boolean)) => {
+    const newValue = typeof value === 'function' ? value(isOpen) : value
     if (onOpenChange) {
-      onOpenChange(value)
+      onOpenChange(newValue)
     } else {
-      setInternalIsOpen(value)
+      setInternalIsOpen(newValue)
     }
   }
 

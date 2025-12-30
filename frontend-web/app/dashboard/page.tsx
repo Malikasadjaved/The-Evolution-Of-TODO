@@ -22,21 +22,30 @@ import { SearchBar } from '@/components/SearchBar'
 import { PremiumSearchBar } from '@/components/PremiumSearchBar'
 import { SortDropdown } from '@/components/SortDropdown'
 import { TaskCard } from '@/components/TaskCard'
+import { CompletedTaskItem } from '@/components/CompletedTaskItem'
+import { ClearCompletedButton } from '@/components/ClearCompletedButton'
 import { TaskForm } from '@/components/TaskForm'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { EmptyState } from '@/components/EmptyState'
+import { triggerConfettiFromElement } from '@/components/ConfettiEffect'
 import { Calendar } from '@/components/Calendar'
 import { UserMenu } from '@/components/UserMenu'
 import { ChatBox } from '@/components/ChatBox'
 import { CommandPalette } from '@/components/CommandPalette'
 import { FABGroup } from '@/components/FABGroup'
 import { StatsGrid } from '@/components/StatsGrid'
+import { ProgressBar } from '@/components/ProgressBar'
+import { NotificationBell } from '@/components/NotificationBell'
+import { QuickAddButton } from '@/components/QuickAddButton'
 import { useAuth } from '@/hooks/useAuth'
 import { useTasks, useDeleteTask, useToggleTaskStatus } from '@/hooks/useTasks'
 import { useToast } from '@/components/ui/Toast'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
+import { DeadlineItem } from '@/components/DeadlineItem'
+import { DeadlineGroup } from '@/components/DeadlineGroup'
+import { formatRelativeTime, type UrgencyLevel } from '@/lib/utils/formatRelativeTime'
 import type { Task } from '@/types/api'
 
 type ViewMode = 'board' | 'list'
@@ -54,6 +63,12 @@ export default function DashboardPage() {
   const [sortField, setSortField] = useState<string>('')
   const [sortOrder, setSortOrder] = useState<string>('asc')
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true)
+
+  // Calendar date filtering (PROMPT 4 enhancement)
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | null>(null)
+
+  // Real-time relative time updates (every minute)
+  const [currentTime, setCurrentTime] = useState(new Date())
 
   // Command palette and chatbox state
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
@@ -98,6 +113,36 @@ export default function DashboardPage() {
       requestPermission()
     }
   }, [isAuthenticated, permission, requestPermission])
+
+  // Mock notifications (replace with real data from backend)
+  const mockNotifications = [
+    {
+      id: '1',
+      type: 'due_soon' as const,
+      title: 'Task Due Soon',
+      message: 'Complete project report is due in 2 hours',
+      timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
+      taskId: tasks?.[0]?.id,
+      read: false,
+    },
+    {
+      id: '2',
+      type: 'overdue' as const,
+      title: 'Overdue Task',
+      message: 'Review pull request #42 is overdue',
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
+      taskId: tasks?.[1]?.id,
+      read: false,
+    },
+    {
+      id: '3',
+      type: 'completed' as const,
+      title: 'Task Completed',
+      message: 'You completed "Design mockups"',
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5), // 5 hours ago
+      read: true,
+    },
+  ]
 
   // Interval timer: Check for upcoming deadlines every 5 minutes
   useEffect(() => {
@@ -218,6 +263,24 @@ export default function DashboardPage() {
     setIsChatBoxOpen(isOpen)
   }
 
+  // Handler: Calendar date click (PROMPT 4 - Date Filtering)
+  const handleCalendarDateClick = (date: Date) => {
+    // If clicking the same date, clear filter (toggle behavior)
+    if (
+      selectedCalendarDate &&
+      selectedCalendarDate.toISOString().split('T')[0] === date.toISOString().split('T')[0]
+    ) {
+      setSelectedCalendarDate(null)
+    } else {
+      setSelectedCalendarDate(date)
+    }
+  }
+
+  // Handler: Clear date filter
+  const handleClearDateFilter = () => {
+    setSelectedCalendarDate(null)
+  }
+
   // Setup global keyboard shortcuts
   useKeyboardShortcuts({
     onOpenCommandPalette: () => {
@@ -249,7 +312,22 @@ export default function DashboardPage() {
   }
 
   // All filtering now handled by backend (search, status, priority, tags)
-  const filteredTasks = tasks
+  // PLUS client-side calendar date filtering (PROMPT 4 enhancement)
+  const filteredTasks = tasks?.filter((task) => {
+    // If no date filter, show all tasks
+    if (!selectedCalendarDate) return true
+
+    // If task has no due date, exclude it
+    if (!task.due_date) return false
+
+    // Compare dates (ignore time)
+    const taskDate = new Date(task.due_date)
+    taskDate.setHours(0, 0, 0, 0)
+    const filterDate = new Date(selectedCalendarDate)
+    filterDate.setHours(0, 0, 0, 0)
+
+    return taskDate.getTime() === filterDate.getTime()
+  })
 
   // Group tasks by status
   const incompleteTasks = filteredTasks?.filter(
@@ -274,6 +352,67 @@ export default function DashboardPage() {
   ).length || 0
   const completionRate =
     totalTasks > 0 ? Math.round((completeTasks?.length || 0) / totalTasks * 100) : 0
+
+  // Get upcoming deadlines (incomplete tasks with due dates)
+  const upcomingDeadlines = (filteredTasks || [])
+    .filter((task) => task.due_date && task.status !== 'COMPLETE')
+    .sort((a, b) => {
+      const dateA = new Date(a.due_date!).getTime()
+      const dateB = new Date(b.due_date!).getTime()
+      return dateA - dateB
+    })
+
+  // Group deadlines by urgency
+  const groupedDeadlines = upcomingDeadlines.reduce<Record<UrgencyLevel, Task[]>>(
+    (acc, task) => {
+      const { urgency } = formatRelativeTime(task.due_date!)
+      if (!acc[urgency]) {
+        acc[urgency] = []
+      }
+      acc[urgency].push(task)
+      return acc
+    },
+    { overdue: [], today: [], tomorrow: [], soon: [], later: [] }
+  )
+
+  // Deadline groups configuration
+  const deadlineGroups = [
+    {
+      urgency: 'overdue' as UrgencyLevel,
+      title: 'Overdue',
+      color: 'text-red-400',
+      bgColor: 'bg-red-500/5',
+      tasks: groupedDeadlines.overdue,
+    },
+    {
+      urgency: 'today' as UrgencyLevel,
+      title: 'Today',
+      color: 'text-amber-400',
+      bgColor: 'bg-amber-500/5',
+      tasks: groupedDeadlines.today,
+    },
+    {
+      urgency: 'tomorrow' as UrgencyLevel,
+      title: 'Tomorrow',
+      color: 'text-yellow-400',
+      bgColor: 'bg-yellow-500/5',
+      tasks: groupedDeadlines.tomorrow,
+    },
+    {
+      urgency: 'soon' as UrgencyLevel,
+      title: 'This Week',
+      color: 'text-white/70',
+      bgColor: 'bg-white/5',
+      tasks: groupedDeadlines.soon,
+    },
+    {
+      urgency: 'later' as UrgencyLevel,
+      title: 'Later',
+      color: 'text-white/50',
+      bgColor: 'bg-white/5',
+      tasks: groupedDeadlines.later,
+    },
+  ]
 
   // Column configuration
   const columns: Array<{
@@ -362,8 +501,8 @@ export default function DashboardPage() {
         {/* Holographic Top Border Effect */}
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent dark:via-cyan-400/50 light:via-blue-400/50 animate-holographic-shift" style={{ backgroundSize: '200% 100%' }} />
         <div className="max-w-[1920px] mx-auto px-6 py-4">
-          {/* Single Row: Logo + Greeting + Stats + User Menu */}
-          <div className="flex items-center justify-between gap-6">
+          {/* Single Row: Logo + Quick Add + Search + Notifications + User Menu */}
+          <div className="flex items-center justify-between gap-4">
             {/* Left: Logo and Greeting */}
             <div className="flex items-center gap-4">
               <motion.div
@@ -389,7 +528,7 @@ export default function DashboardPage() {
                   />
                 </svg>
               </motion.div>
-              <div>
+              <div className="hidden lg:block">
                 <h1 className="text-xl font-bold dark:text-white light:text-gray-900 transition-colors">
                   Dashboard
                 </h1>
@@ -399,22 +538,79 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Center: Premium Search Bar */}
-            <div className="hidden md:flex flex-1 max-w-2xl mx-4">
-              <PremiumSearchBar
-                value={searchQuery}
-                onChange={setSearchQuery}
-                onCommandPaletteOpen={() => setIsCommandPaletteOpen(true)}
-                placeholder="Search tasks..."
+            {/* Center: Quick Add + Premium Search Bar */}
+            <div className="hidden md:flex items-center gap-3 flex-1 max-w-[500px]">
+              {/* Quick Add Button */}
+              <QuickAddButton
+                onClick={() => {
+                  setSelectedTask(undefined)
+                  setIsTaskFormOpen(true)
+                }}
+                tooltip="Quick Add Task (N)"
               />
+
+              {/* Premium Search Bar with Suggestions */}
+              <div className="flex-1">
+                <PremiumSearchBar
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                  onCommandPaletteOpen={() => setIsCommandPaletteOpen(true)}
+                  placeholder="Search tasks..."
+                  tasks={tasks || []}
+                  onTaskClick={(taskId) => {
+                    const task = tasks?.find((t) => t.id === taskId)
+                    if (task) {
+                      setSelectedTask(task)
+                      setIsTaskFormOpen(true)
+                    }
+                  }}
+                  onQuickFilterClick={(filterId) => {
+                    // Apply quick filters
+                    switch (filterId) {
+                      case 'high_priority':
+                        setFilterPriority('HIGH')
+                        break
+                      case 'due_today':
+                        // Filter tasks due today
+                        const today = new Date().toISOString().split('T')[0]
+                        setSearchQuery(`due:${today}`)
+                        break
+                      case 'overdue':
+                        // Filter overdue tasks
+                        setFilterStatus('INCOMPLETE')
+                        // Additional logic for overdue filtering
+                        break
+                    }
+                  }}
+                />
+              </div>
             </div>
 
-            {/* Right: User Menu + Toggle Panel */}
+            {/* Right: Notifications + User Menu + Toggle Panel */}
             <div className="flex items-center gap-3">
+              {/* Notification Bell */}
+              <NotificationBell
+                notifications={mockNotifications}
+                onMarkAllRead={() => {
+                  // TODO: Implement mark all as read
+                  console.log('Mark all notifications as read')
+                }}
+                onNotificationClick={(notification) => {
+                  // Navigate to task if taskId is present
+                  if (notification.taskId) {
+                    const task = tasks?.find((t) => t.id === notification.taskId)
+                    if (task) {
+                      setSelectedTask(task)
+                      setIsTaskFormOpen(true)
+                    }
+                  }
+                }}
+              />
+
               {/* Toggle Right Panel */}
               <motion.button
                 onClick={() => setIsRightPanelOpen(!isRightPanelOpen)}
-                className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-blue-500/20 transition-colors"
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-blue-500/20 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 aria-label={isRightPanelOpen ? 'Hide sidebar' : 'Show sidebar'}
@@ -483,8 +679,11 @@ export default function DashboardPage() {
         )}
       </AnimatePresence>
 
-      {/* Stats Grid Section - NEW */}
+      {/* Stats Grid Section */}
       <StatsGrid tasks={tasks} />
+
+      {/* Horizontal Progress Bar */}
+      <ProgressBar tasks={tasks} />
 
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
@@ -520,8 +719,71 @@ export default function DashboardPage() {
                 }}
               />
             ) : (
-              <div className="grid grid-cols-2 gap-6">
-                {columns.map((column, columnIndex) => (
+              <>
+                {/* Date Filter Label (PROMPT 4 - Show active date filter) */}
+                {selectedCalendarDate && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mb-6 flex items-center justify-between bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-lg border border-purple-400/30 rounded-xl px-6 py-4"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-purple-500/30 rounded-lg flex items-center justify-center">
+                        <svg
+                          className="w-5 h-5 text-purple-300"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                          />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-xs text-white/60 font-medium">
+                          Showing tasks for
+                        </p>
+                        <p className="text-white font-semibold">
+                          {selectedCalendarDate.toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleClearDateFilter}
+                      className="text-white/70 hover:text-white"
+                    >
+                      <svg
+                        className="w-4 h-4 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                      Clear Filter
+                    </Button>
+                  </motion.div>
+                )}
+
+                <div className="grid grid-cols-2 gap-6">
+                  {columns.map((column, columnIndex) => (
                   <motion.div
                     key={column.status}
                     className="flex flex-col"
@@ -531,7 +793,7 @@ export default function DashboardPage() {
                   >
                     {/* Column Header */}
                     <div
-                      className={`bg-gradient-to-br ${column.gradient} backdrop-blur-xl border border-blue-500/20 rounded-2xl p-6 mb-6 shadow-lg`}
+                      className={`bg-gradient-to-br ${column.gradient} backdrop-blur-xl border border-blue-500/20 rounded-2xl p-6 mb-5 shadow-lg`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -598,7 +860,7 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Task Cards */}
-                    <div className="space-y-4 flex-1 min-h-[500px]">
+                    <div className="space-y-3 flex-1 min-h-[500px]">
                       <AnimatePresence mode="popLayout">
                         {column.tasks?.length === 0 ? (
                           <motion.div
@@ -642,7 +904,8 @@ export default function DashboardPage() {
                     </div>
                   </motion.div>
                 ))}
-              </div>
+                </div>
+              </>
             )}
           </div>
         </motion.main>
@@ -683,129 +946,138 @@ export default function DashboardPage() {
                     </div>
                     <h3 className="text-lg font-semibold text-white">Calendar</h3>
                   </div>
-                  <Calendar tasks={tasks} />
+                  <Calendar
+                    tasks={tasks}
+                    onDateClick={handleCalendarDateClick}
+                    selectedDate={selectedCalendarDate}
+                  />
                 </motion.div>
 
-                {/* Upcoming Tasks */}
+                {/* Upcoming Deadlines (PROMPT 8 - Enhanced) */}
                 <motion.div
                   className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 backdrop-blur-lg border border-purple-500/20 rounded-2xl p-6"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.5 }}
                 >
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                      <svg
-                        className="w-5 h-5 text-purple-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
+                  {/* Section Header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                        <svg
+                          className="w-5 h-5 text-purple-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">
+                          Upcoming Deadlines
+                        </h3>
+                        {upcomingDeadlines.length > 0 && (
+                          <span className="text-xs text-purple-300">
+                            {upcomingDeadlines.length} {upcomingDeadlines.length === 1 ? 'task' : 'tasks'}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <h3 className="text-lg font-semibold text-white">
-                      Upcoming Deadlines
-                    </h3>
+
+                    {/* View all link (if more than 5) */}
+                    {upcomingDeadlines.length > 5 && (
+                      <button
+                        onClick={() => setFilterStatus('all')}
+                        className="text-xs text-purple-300 hover:text-purple-200 transition-colors"
+                      >
+                        View all
+                      </button>
+                    )}
                   </div>
 
-                  <div className="space-y-3">
-                    {tasks
-                      ?.filter(
-                        (task) =>
-                          task.due_date &&
-                          task.status !== 'COMPLETE' &&
-                          new Date(task.due_date) >= new Date()
-                      )
-                      .sort(
-                        (a, b) =>
-                          new Date(a.due_date!).getTime() -
-                          new Date(b.due_date!).getTime()
-                      )
-                      .slice(0, 5)
-                      .map((task, index) => (
+                  {/* Deadline Groups or Items */}
+                  <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                    {upcomingDeadlines.length === 0 ? (
+                      /* Empty State - Celebratory */
+                      <motion.div
+                        className="bg-white/5 backdrop-blur-lg border border-purple-500/20 rounded-xl p-8 text-center"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.2 }}
+                      >
                         <motion.div
-                          key={task.id}
-                          className="bg-white/5 backdrop-blur-lg border border-purple-500/20 rounded-xl p-4 hover:bg-white/10 transition-colors cursor-pointer group"
-                          onClick={() => handleEditTask(task)}
-                          initial={{ opacity: 0, x: 20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.6 + index * 0.05 }}
-                          whileHover={{ scale: 1.02, x: -2 }}
+                          className="text-6xl mb-3"
+                          animate={{
+                            rotate: [0, -10, 10, -10, 0],
+                            scale: [1, 1.1, 1],
+                          }}
+                          transition={{
+                            duration: 1,
+                            repeat: Infinity,
+                            repeatDelay: 3,
+                          }}
                         >
-                          <div className="flex items-start justify-between mb-2">
-                            <p className="text-white text-sm font-medium flex-1 group-hover:text-cyan-300 transition-colors">
-                              {task.title}
-                            </p>
-                            <span
-                              className={`text-xs px-2 py-1 rounded-full ${
-                                task.priority === 'HIGH'
-                                  ? 'bg-red-500/20 text-red-300'
-                                  : task.priority === 'MEDIUM'
-                                  ? 'bg-yellow-500/20 text-yellow-300'
-                                  : 'bg-green-500/20 text-green-300'
-                              }`}
-                            >
-                              {task.priority}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <svg
-                              className="w-4 h-4 text-gray-400"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                              />
-                            </svg>
-                            <p className="text-xs text-gray-400">
-                              {new Date(task.due_date!).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric',
-                              })}
-                            </p>
-                          </div>
+                          🎉
                         </motion.div>
-                      ))}
-
-                    {(!tasks ||
-                      tasks.filter(
-                        (task) =>
-                          task.due_date &&
-                          task.status !== 'COMPLETE' &&
-                          new Date(task.due_date) >= new Date()
-                      ).length === 0) && (
-                      <div className="bg-white/5 backdrop-blur-lg border border-purple-500/20 rounded-xl p-8 text-center">
-                        <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-3">
-                          <svg
-                            className="w-6 h-6 text-gray-500"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                          </svg>
-                        </div>
+                        <h4 className="text-white text-lg font-semibold mb-1">
+                          No upcoming deadlines!
+                        </h4>
                         <p className="text-gray-400 text-sm">
-                          No upcoming deadlines
+                          Enjoy your free time
                         </p>
-                      </div>
+                      </motion.div>
+                    ) : (
+                      /* Option 1: Grouped by urgency (uncomment to use) */
+                      <>
+                        {deadlineGroups.map((group) => (
+                          <DeadlineGroup
+                            key={group.urgency}
+                            title={group.title}
+                            count={group.tasks.length}
+                            color={group.color}
+                            bgColor={group.bgColor}
+                            defaultExpanded={
+                              group.urgency === 'overdue' ||
+                              group.urgency === 'today'
+                            }
+                          >
+                            <AnimatePresence mode="popLayout">
+                              {group.tasks.map((task, index) => (
+                                <DeadlineItem
+                                  key={`${task.id}-${currentTime.getTime()}`}
+                                  task={task}
+                                  index={index}
+                                  onClick={() => handleEditTask(task)}
+                                  onToggleComplete={(taskId) =>
+                                    handleToggleStatus(taskId, 'COMPLETE')
+                                  }
+                                />
+                              ))}
+                            </AnimatePresence>
+                          </DeadlineGroup>
+                        ))}
+                      </>
+
+                      /* Option 2: Simple list (no grouping) - comment out above and uncomment below to use */
+                      /* <AnimatePresence mode="popLayout">
+                        {upcomingDeadlines.slice(0, 5).map((task, index) => (
+                          <DeadlineItem
+                            key={`${task.id}-${currentTime.getTime()}`}
+                            task={task}
+                            index={index}
+                            onClick={() => handleEditTask(task)}
+                            onToggleComplete={(taskId) =>
+                              handleToggleStatus(taskId, 'COMPLETE')
+                            }
+                          />
+                        ))}
+                      </AnimatePresence> */
                     )}
                   </div>
                 </motion.div>

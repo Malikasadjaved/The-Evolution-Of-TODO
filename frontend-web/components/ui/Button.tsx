@@ -214,8 +214,8 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         className={allClasses}
         disabled={disabled || loading}
         onClick={handleClick}
-        whileHover={!disabled && !loading ? { scale: 1.02 } : {}}
-        whileTap={!disabled && !loading ? { scale: 0.98 } : {}}
+        whileHover={!disabled && !loading ? { scale: 1.02, y: -2 } : {}}
+        whileTap={!disabled && !loading ? { scale: 0.98, y: 0 } : {}}
         transition={{ type: 'spring', stiffness: 400, damping: 17 }}
         {...(props as any)}
       >
