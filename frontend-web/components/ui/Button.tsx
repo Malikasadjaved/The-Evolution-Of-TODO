@@ -217,7 +217,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         whileHover={!disabled && !loading ? { scale: 1.02 } : {}}
         whileTap={!disabled && !loading ? { scale: 0.98 } : {}}
         transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-        {...props}
+        {...(props as any)}
       >
         {/* Ripple effects */}
         {ripples.map((ripple) => (

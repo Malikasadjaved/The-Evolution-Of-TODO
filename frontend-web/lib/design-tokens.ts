@@ -320,6 +320,6 @@ export const getTypographyClasses = (scale: keyof typeof TYPOGRAPHY): string => 
 /**
  * Get priority color classes
  */
-export const getPriorityClasses = (priority: 'HIGH' | 'MEDIUM' | 'LOW'): typeof COLORS.priority.HIGH => {
+export const getPriorityClasses = (priority: 'HIGH' | 'MEDIUM' | 'LOW') => {
   return COLORS.priority[priority]
 }

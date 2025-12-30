@@ -23,6 +23,12 @@ module.exports = {
         'fade-in': 'fadeIn 0.3s ease-out',
         // Bounce subtle
         'bounce-subtle': 'bounceSubtle 0.6s ease-in-out',
+        // AI/Tech animations
+        scanline: 'scanline 8s linear infinite',
+        'data-stream': 'dataStream 3s linear infinite',
+        'neural-pulse': 'neuralPulse 3s ease-in-out infinite',
+        'holographic-shift': 'holographicShift 6s ease-in-out infinite',
+        'gradient-rotate': 'gradientRotate 8s linear infinite',
       },
       keyframes: {
         shimmer: {
@@ -58,6 +64,39 @@ module.exports = {
         bounceSubtle: {
           '0%, 100%': { transform: 'translateY(0)' },
           '50%': { transform: 'translateY(-5px)' },
+        },
+        // AI/Tech keyframes
+        scanline: {
+          '0%': { transform: 'translateY(-100%)' },
+          '100%': { transform: 'translateY(100vh)' },
+        },
+        dataStream: {
+          '0%': { transform: 'translateY(-100%)', opacity: '0' },
+          '10%': { opacity: '0.3' },
+          '90%': { opacity: '0.3' },
+          '100%': { transform: 'translateY(100vh)', opacity: '0' },
+        },
+        neuralPulse: {
+          '0%, 100%': {
+            opacity: '0.3',
+            transform: 'scale(1)',
+          },
+          '50%': {
+            opacity: '0.8',
+            transform: 'scale(1.05)',
+          },
+        },
+        holographicShift: {
+          '0%, 100%': {
+            backgroundPosition: '0% 50%',
+          },
+          '50%': {
+            backgroundPosition: '100% 50%',
+          },
+        },
+        gradientRotate: {
+          '0%': { transform: 'rotate(0deg)' },
+          '100%': { transform: 'rotate(360deg)' },
         },
       },
     },

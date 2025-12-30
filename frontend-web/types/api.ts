@@ -88,3 +88,43 @@ export interface HealthCheckResponse {
   status: string
   timestamp: string
 }
+
+/**
+ * Message entity for chat conversations.
+ * Matches backend Message model.
+ */
+export interface Message {
+  id: number
+  conversation_id: number
+  user_id: string
+  role: 'USER' | 'ASSISTANT'
+  content: string
+  created_at: string // ISO 8601 datetime string
+}
+
+/**
+ * Conversation entity for chat history.
+ * Matches backend Conversation model.
+ */
+export interface Conversation {
+  id: number
+  user_id: string
+  created_at: string // ISO 8601 datetime string
+  updated_at: string // ISO 8601 datetime string
+}
+
+/**
+ * Chat request payload.
+ */
+export interface ChatRequest {
+  message: string
+  conversation_id?: number
+}
+
+/**
+ * Chat response payload.
+ */
+export interface ChatResponse {
+  message: string
+  conversation_id: number
+}

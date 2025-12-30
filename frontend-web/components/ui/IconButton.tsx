@@ -198,7 +198,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
         whileHover={!disabled ? { scale: 1.1, rotate: variant === 'delete' ? -5 : 5 } : {}}
         whileTap={!disabled ? { scale: 0.9 } : {}}
         transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-        {...props}
+        {...(props as any)}
       >
         {icon && (
           <div className={iconSizeClass}>

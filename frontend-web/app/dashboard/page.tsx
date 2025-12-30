@@ -13,12 +13,13 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Select'
 import { SearchBar } from '@/components/SearchBar'
+import { PremiumSearchBar } from '@/components/PremiumSearchBar'
 import { SortDropdown } from '@/components/SortDropdown'
 import { TaskCard } from '@/components/TaskCard'
 import { TaskForm } from '@/components/TaskForm'
@@ -27,10 +28,15 @@ import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { EmptyState } from '@/components/EmptyState'
 import { Calendar } from '@/components/Calendar'
 import { UserMenu } from '@/components/UserMenu'
+import { ChatBox } from '@/components/ChatBox'
+import { CommandPalette } from '@/components/CommandPalette'
+import { FABGroup } from '@/components/FABGroup'
+import { StatsGrid } from '@/components/StatsGrid'
 import { useAuth } from '@/hooks/useAuth'
 import { useTasks, useDeleteTask, useToggleTaskStatus } from '@/hooks/useTasks'
 import { useToast } from '@/components/ui/Toast'
 import { useNotifications } from '@/hooks/useNotifications'
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import type { Task } from '@/types/api'
 
 type ViewMode = 'board' | 'list'
@@ -48,6 +54,11 @@ export default function DashboardPage() {
   const [sortField, setSortField] = useState<string>('')
   const [sortOrder, setSortOrder] = useState<string>('asc')
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true)
+
+  // Command palette and chatbox state
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
+  const [isChatBoxOpen, setIsChatBoxOpen] = useState(false)
+  const chatBoxRef = useRef<{ toggleChat: () => void } | null>(null)
 
   // Fetch tasks with all filters and sorting (backend filtering)
   const { data: tasks, isLoading: isLoadingTasks } = useTasks(
@@ -154,7 +165,7 @@ export default function DashboardPage() {
     setTaskToDelete(undefined)
   }
 
-  // Handler: Open Chat Assistant with authentication token
+  // Handler: Open Chat Assistant in new tab (legacy - now integrated)
   const handleOpenChatAssistant = () => {
     // Get JWT token from localStorage
     const token = localStorage.getItem('auth_token')
@@ -187,6 +198,39 @@ export default function DashboardPage() {
       toast.error(message)
     }
   }
+
+  // Handler: Apply filter from command palette
+  const handleApplyFilter = (filter: { type: string; value: string }) => {
+    if (filter.type === 'priority') {
+      setFilterPriority(filter.value)
+    } else if (filter.type === 'status') {
+      setFilterStatus(filter.value)
+    }
+  }
+
+  // Handler: Open chatbox programmatically
+  const handleOpenChatBox = () => {
+    setIsChatBoxOpen((prev) => !prev)
+  }
+
+  // Handler: ChatBox toggle callback
+  const handleChatBoxToggle = (isOpen: boolean) => {
+    setIsChatBoxOpen(isOpen)
+  }
+
+  // Setup global keyboard shortcuts
+  useKeyboardShortcuts({
+    onOpenCommandPalette: () => {
+      // Command palette has its own keyboard handling (Cmd+K)
+      // This is just for consistency
+    },
+    onNewTask: handleCreateTask,
+    onOpenAIChat: handleOpenChatBox,
+    onEscape: () => {
+      setIsTaskFormOpen(false)
+      setIsDeleteDialogOpen(false)
+    },
+  })
 
   // Show loading state
   if (isLoading || !user) {
@@ -273,21 +317,62 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900">
-      {/* Top Header */}
+    <div className="min-h-screen flex flex-col relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 dark:from-slate-900 dark:via-blue-950 dark:to-slate-900 light:from-gray-50 light:via-blue-50 light:to-gray-50 transition-colors duration-500">
+      {/* AI Tech Background Effects */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {/* Gradient Mesh - Animated Floating Orbs */}
+        <div className="absolute top-20 left-10 w-96 h-96 bg-blue-500/20 dark:bg-blue-500/20 light:bg-blue-400/15 rounded-full blur-3xl animate-floating-orbs" />
+        <div className="absolute bottom-20 right-10 w-80 h-80 bg-cyan-500/15 dark:bg-cyan-500/15 light:bg-cyan-400/10 rounded-full blur-3xl animate-floating-orbs" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-500/10 dark:bg-purple-500/10 light:bg-purple-400/8 rounded-full blur-3xl animate-floating-orbs" style={{ animationDelay: '4s' }} />
+
+        {/* Scanline Effect (subtle) */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-cyan-500/5 to-transparent h-2 animate-scanline opacity-30" />
+
+        {/* Neural Network Grid Pattern */}
+        <svg className="absolute inset-0 w-full h-full opacity-[0.03] dark:opacity-[0.03] light:opacity-[0.02]">
+          <defs>
+            <pattern id="neural-grid" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
+              <circle cx="50" cy="50" r="1.5" fill="currentColor" className="text-cyan-400" />
+              <line x1="50" y1="50" x2="100" y2="0" stroke="currentColor" strokeWidth="0.5" className="text-cyan-400/50" />
+              <line x1="50" y1="50" x2="0" y2="100" stroke="currentColor" strokeWidth="0.5" className="text-cyan-400/50" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#neural-grid)" />
+        </svg>
+
+        {/* Data Stream Effect - Vertical Lines */}
+        {[...Array(5)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-px h-32 bg-gradient-to-b from-transparent via-cyan-400/30 to-transparent animate-data-stream"
+            style={{
+              left: `${20 + i * 20}%`,
+              animationDelay: `${i * 0.8}s`,
+            }}
+          />
+        ))}
+      </div>
+      {/* Redesigned Simplified Header */}
       <motion.header
-        className="bg-white/5 backdrop-blur-xl border-b border-blue-500/20 sticky top-0 z-50"
+        className="relative bg-white/5 dark:bg-white/5 light:bg-white/80 backdrop-blur-xl border-b border-blue-500/20 dark:border-blue-500/20 light:border-gray-200 sticky top-0 z-50 transition-colors duration-300"
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       >
+        {/* Holographic Top Border Effect */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent dark:via-cyan-400/50 light:via-blue-400/50 animate-holographic-shift" style={{ backgroundSize: '200% 100%' }} />
         <div className="max-w-[1920px] mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            {/* Logo and Title */}
+          {/* Single Row: Logo + Greeting + Stats + User Menu */}
+          <div className="flex items-center justify-between gap-6">
+            {/* Left: Logo and Greeting */}
             <div className="flex items-center gap-4">
               <motion.div
-                className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center"
-                whileHover={{ scale: 1.05, rotate: 5 }}
+                className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg dark:shadow-cyan-500/30 light:shadow-blue-500/30"
+                whileHover={{
+                  scale: 1.05,
+                  rotate: 5,
+                  boxShadow: '0 0 20px rgba(6, 182, 212, 0.5)',
+                }}
                 whileTap={{ scale: 0.95 }}
               >
                 <svg
@@ -305,242 +390,34 @@ export default function DashboardPage() {
                 </svg>
               </motion.div>
               <div>
-                <h1 className="text-xl font-bold text-white">Dashboard</h1>
-                <p className="text-sm text-gray-400">
+                <h1 className="text-xl font-bold dark:text-white light:text-gray-900 transition-colors">
+                  Dashboard
+                </h1>
+                <p className="text-sm dark:text-gray-400 light:text-gray-600 transition-colors">
                   Welcome back, {user.name || user.email.split('@')[0]}
                 </p>
               </div>
             </div>
 
-            {/* Center - Search and Filters */}
-            <div className="flex items-center gap-3 flex-1 max-w-3xl mx-8">
-              <SearchBar
-                onSearchChange={setSearchQuery}
+            {/* Center: Premium Search Bar */}
+            <div className="hidden md:flex flex-1 max-w-2xl mx-4">
+              <PremiumSearchBar
+                value={searchQuery}
+                onChange={setSearchQuery}
+                onCommandPaletteOpen={() => setIsCommandPaletteOpen(true)}
                 placeholder="Search tasks..."
-                initialValue={searchQuery}
               />
             </div>
 
-            {/* Right - Actions and User */}
+            {/* Right: User Menu + Toggle Panel */}
             <div className="flex items-center gap-3">
-              {/* Chat Assistant */}
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button
-                  variant="ghost"
-                  size="md"
-                  onClick={handleOpenChatAssistant}
-                  className="!bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-400/30 hover:border-purple-400/50"
-                >
-                  <svg
-                    className="w-5 h-5 text-purple-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
-                    />
-                  </svg>
-                  <span className="ml-2 text-white">AI Assistant</span>
-                </Button>
-              </motion.div>
-
-              {/* Create Task */}
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button variant="primary" onClick={handleCreateTask}>
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 4v16m8-8H4"
-                    />
-                  </svg>
-                  <span className="ml-2">New Task</span>
-                </Button>
-              </motion.div>
-
-              {/* User Menu */}
-              <UserMenu />
-            </div>
-          </div>
-
-          {/* Secondary Bar - Stats and Filters */}
-          <motion.div
-            className="flex items-center justify-between mt-4 pt-4 border-t border-blue-500/10"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            {/* Stats Cards */}
-            <div className="flex items-center gap-4">
-              {/* Total Tasks */}
-              <motion.div
-                className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 backdrop-blur-lg border border-blue-500/20 rounded-xl px-4 py-2"
-                whileHover={{ scale: 1.02 }}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                    <svg
-                      className="w-5 h-5 text-blue-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-white">{totalTasks}</p>
-                    <p className="text-xs text-gray-400">Total Tasks</p>
-                  </div>
-                </div>
-              </motion.div>
-
-              {/* Completed Today */}
-              <motion.div
-                className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 backdrop-blur-lg border border-green-500/20 rounded-xl px-4 py-2"
-                whileHover={{ scale: 1.02 }}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
-                    <svg
-                      className="w-5 h-5 text-green-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-white">{completedToday}</p>
-                    <p className="text-xs text-gray-400">Done Today</p>
-                  </div>
-                </div>
-              </motion.div>
-
-              {/* Completion Rate */}
-              <motion.div
-                className="bg-gradient-to-br from-cyan-500/10 to-blue-500/10 backdrop-blur-lg border border-cyan-500/20 rounded-xl px-4 py-2"
-                whileHover={{ scale: 1.02 }}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-cyan-500/20 rounded-lg flex items-center justify-center">
-                    <svg
-                      className="w-5 h-5 text-cyan-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-white">{completionRate}%</p>
-                    <p className="text-xs text-gray-400">Completion</p>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-
-            {/* Filters */}
-            <div className="flex items-center gap-3">
-              <Select
-                value={filterPriority}
-                onChange={(value) => setFilterPriority(value)}
-                options={[
-                  { value: 'all', label: 'All Priorities' },
-                  { value: 'HIGH', label: 'High' },
-                  { value: 'MEDIUM', label: 'Medium' },
-                  { value: 'LOW', label: 'Low' },
-                ]}
-                placeholder="Priority"
-              />
-
-              {allTags.length > 0 && (
-                <Select
-                  value={filterTags}
-                  onChange={(value) => setFilterTags(value)}
-                  options={[
-                    { value: 'all', label: 'All Tags' },
-                    ...allTags.map((tag) => ({ value: tag, label: tag })),
-                  ]}
-                  placeholder="Tags"
-                />
-              )}
-
-              <SortDropdown
-                onSortChange={(sort, order) => {
-                  setSortField(sort)
-                  setSortOrder(order)
-                }}
-                initialSort={sortField as any}
-                initialOrder={sortOrder as any}
-              />
-
-              {/* Clear Filters */}
-              {(searchQuery || filterPriority !== 'all' || filterTags !== 'all' || sortField) && (
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setSearchQuery('')
-                      setFilterStatus('all')
-                      setFilterPriority('all')
-                      setFilterTags('all')
-                      setSortField('')
-                      setSortOrder('asc')
-                    }}
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                    <span className="ml-2">Clear</span>
-                  </Button>
-                </motion.div>
-              )}
-
               {/* Toggle Right Panel */}
               <motion.button
                 onClick={() => setIsRightPanelOpen(!isRightPanelOpen)}
                 className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-blue-500/20 transition-colors"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
+                aria-label={isRightPanelOpen ? 'Hide sidebar' : 'Show sidebar'}
               >
                 <svg
                   className={`w-5 h-5 text-cyan-400 transition-transform ${
@@ -558,8 +435,11 @@ export default function DashboardPage() {
                   />
                 </svg>
               </motion.button>
+
+              {/* User Menu */}
+              <UserMenu />
             </div>
-          </motion.div>
+          </div>
         </div>
       </motion.header>
 
@@ -602,6 +482,9 @@ export default function DashboardPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Stats Grid Section - NEW */}
+      <StatsGrid tasks={tasks} />
 
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
@@ -954,6 +837,27 @@ export default function DashboardPage() {
         variant="danger"
         isLoading={deleteTask.isPending}
       />
+
+      {/* Command Palette */}
+      <CommandPalette
+        tasks={tasks}
+        onCreateTask={handleCreateTask}
+        onOpenAIChat={handleOpenChatBox}
+        onSelectTask={handleEditTask}
+        onApplyFilter={handleApplyFilter}
+        isOpen={isCommandPaletteOpen}
+        onOpenChange={setIsCommandPaletteOpen}
+      />
+
+      {/* Floating Action Button Group */}
+      <FABGroup
+        onCreateTask={handleCreateTask}
+        onOpenAIChat={handleOpenChatBox}
+        showAIChat={true}
+      />
+
+      {/* Integrated AI Chatbot */}
+      <ChatBox isOpen={isChatBoxOpen} onToggle={handleChatBoxToggle} />
     </div>
   )
 }
