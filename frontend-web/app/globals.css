@@ -525,6 +525,37 @@ body::after {
 
 /**
  * ============================================================================
+ * FORM VALIDATION SHAKE ANIMATION
+ * ============================================================================
+ * Shake animation for form fields with validation errors
+ * Provides tactile feedback when user input is invalid
+ */
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-4px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(4px);
+  }
+}
+
+.shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .shake {
+    animation: none !important;
+  }
+}
+
+/**
+ * ============================================================================
  * SCREEN READER ONLY UTILITY
  * ============================================================================
  * Hides content visually but keeps it accessible to screen readers

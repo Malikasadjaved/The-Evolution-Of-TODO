@@ -37,7 +37,6 @@ import { FABGroup } from '@/components/FABGroup'
 import { StatsGrid } from '@/components/StatsGrid'
 import { ProgressBar } from '@/components/ProgressBar'
 import { NotificationBell } from '@/components/NotificationBell'
-import { QuickAddButton } from '@/components/QuickAddButton'
 import { useAuth } from '@/hooks/useAuth'
 import { useTasks, useDeleteTask, useToggleTaskStatus } from '@/hooks/useTasks'
 import { useToast } from '@/components/ui/Toast'
@@ -538,17 +537,8 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Center: Quick Add + Premium Search Bar */}
-            <div className="hidden md:flex items-center gap-3 flex-1 max-w-[500px]">
-              {/* Quick Add Button */}
-              <QuickAddButton
-                onClick={() => {
-                  setSelectedTask(undefined)
-                  setIsTaskFormOpen(true)
-                }}
-                tooltip="Quick Add Task (N)"
-              />
-
+            {/* Center: Premium Search Bar */}
+            <div className="hidden md:flex items-center gap-3 flex-1 max-w-[700px]">
               {/* Premium Search Bar with Suggestions */}
               <div className="flex-1">
                 <PremiumSearchBar
