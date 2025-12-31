@@ -1,4 +1,0 @@
-colorama==0.4.6
-python-dateutil==2.9.0.post0
-plyer==2.1.0
-filelock==3.13.1

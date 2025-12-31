@@ -1,0 +1,196 @@
+# Spec-Kit Plus: Agent Configuration
+# Phase 2: Full-Stack Web Application
+# Created: 2025-12-15
+# Constitution: .specify/memory/phase-2-constitution.md (Section XIII)
+
+agents:
+  spec_validator:
+    name: "Spec Validator Agent"
+    purpose: "Validate specifications before implementation"
+    description: |
+      Ensures all specs are complete, unambiguous, and ready for planning.
+      Checks for missing requirements, unclear acceptance criteria, and scope gaps.
+
+    triggers:
+      - "Before starting implementation"
+      - "After spec updates"
+      - "During /sp.clarify workflow"
+
+    validation_rules:
+      - "All API endpoints have corresponding database models"
+      - "JWT authentication flow is consistent across all specs"
+      - "All endpoints document authentication requirements"
+      - "Error responses are specified with status codes"
+      - "Validation rules are defined for all user inputs"
+      - "User isolation is enforced in all CRUD operation specs"
+      - "Success criteria are measurable and technology-agnostic"
+      - "Edge cases are identified and handled"
+
+    context_files:
+      - "specs/**/*.md"
+      - ".specify/memory/phase-2-constitution.md"
+
+    output: "validation-report.md"
+
+    usage_example: |
+      "Create the spec_validator agent and run it on specs/001-fullstack-web-app/spec.md"
+
+  security_auditor:
+    name: "Security Audit Agent"
+    purpose: "Audit implementation for security vulnerabilities"
+    description: |
+      Scans backend code for security issues: JWT verification, user isolation,
+      SQL injection, XSS, CSRF. Enforces constitution security requirements.
+
+    triggers:
+      - "After implementing authentication (JWT middleware)"
+      - "After implementing API endpoints"
+      - "Before deployment to production"
+      - "After any auth-related code changes"
+
+    audit_checks:
+      - "JWT verification present on ALL protected endpoints"
+      - "Token user_id matches URL user_id check is present"
+      - "Database queries filter by token user_id (NEVER URL user_id)"
+      - "No hardcoded BETTER_AUTH_SECRET in source code"
+      - "Proper 401 vs 403 error responses (401: missing token, 403: wrong user)"
+      - "CORS configuration allows only frontend origin"
+      - "No SQL injection vulnerabilities (SQLModel parameterized queries used)"
+      - "Password hashing uses bcrypt (handled by Better Auth)"
+      - "Error messages don't leak sensitive information"
+      - "All environment variables validated on startup"
+
+    context_files:
+      - "backend/src/**/*.py"
+      - "specs/features/authentication.md"
+      - ".specify/memory/phase-2-constitution.md"
+
+    output: "security-audit-report.md"
+
+    usage_example: |
+      "Create the security_auditor agent and run it on backend/src/api/"
+
+  api_contract_validator:
+    name: "API Contract Agent"
+    purpose: "Ensure frontend-backend API alignment"
+    description: |
+      Validates that frontend API client matches backend endpoint contracts.
+      Checks types, error handling, and authentication headers.
+
+    triggers:
+      - "After backend API implementation"
+      - "After frontend API client implementation"
+      - "After API spec changes"
+      - "Before integration testing"
+
+    validation_checks:
+      - "Endpoint paths match spec exactly (e.g., /api/{user_id}/tasks)"
+      - "Request payload types align (TypeScript ↔ Pydantic)"
+      - "Response payload types align"
+      - "Frontend handles all documented error codes (401, 403, 404, 422, 500)"
+      - "Authorization: Bearer <token> header included in all protected requests"
+      - "TypeScript interfaces match Pydantic models (Task, User, Tag)"
+      - "Query parameters match (status, priority, tags, search, sort, order, offset, limit)"
+      - "HTTP methods match (GET, POST, PUT, DELETE, PATCH)"
+
+    context_files:
+      - "specs/api/rest-endpoints.md"
+      - "frontend/lib/api.ts"
+      - "frontend/types/**/*.ts"
+      - "backend/src/api/routes/**/*.py"
+      - "backend/src/api/models.py"
+
+    output: "api-contract-report.md"
+
+    usage_example: |
+      "Create the api_contract_validator agent and run it to check frontend/backend alignment"
+
+skills:
+  jwt_middleware_generator:
+    name: "JWT Middleware Generator"
+    purpose: "Generate FastAPI JWT verification middleware"
+    description: |
+      Generates backend auth.py middleware following constitution Section VI (5-step JWT flow).
+      Ensures proper token extraction, signature verification, and user extraction.
+
+    input_specs:
+      - "specs/features/authentication.md"
+      - ".specify/memory/phase-2-constitution.md (Section VI)"
+
+    output_files:
+      - "backend/src/api/auth.py"
+
+    pattern: |
+      1. Extract token from "Authorization: Bearer <token>" header
+      2. Verify signature using BETTER_AUTH_SECRET (from environment)
+      3. Check token expiration (reject if expired → 401)
+      4. Decode payload to extract user_id and email
+      5. Raise HTTPException 401 on any verification failure
+      6. Return user_id for use in route handlers
+
+    implementation_notes:
+      - "Use PyJWT library for token verification"
+      - "Load BETTER_AUTH_SECRET from Pydantic Settings (config.py)"
+      - "Use HS256 algorithm (must match Better Auth)"
+      - "Provide clear error messages (token expired, invalid signature, malformed)"
+      - "Make middleware reusable as FastAPI Depends()"
+
+    usage_example: |
+      "Use the jwt_middleware_generator skill to generate backend/src/api/auth.py"
+
+  api_client_generator:
+    name: "API Client Generator"
+    purpose: "Generate type-safe frontend API client"
+    description: |
+      Generates frontend lib/api.ts wrapper with automatic JWT attachment,
+      error handling, and type-safe request/response.
+
+    input_specs:
+      - "specs/api/rest-endpoints.md"
+      - ".specify/memory/phase-2-constitution.md (Section VII)"
+
+    output_files:
+      - "frontend/lib/api.ts"
+      - "frontend/types/api.ts"
+
+    pattern: |
+      1. Auto-attach JWT token from localStorage to all requests
+      2. Type-safe request/response using TypeScript interfaces
+      3. Handle 401 Unauthorized → redirect to /login
+      4. Handle 403 Forbidden → show error toast
+      5. Handle network errors → show retry option
+      6. Debounce search requests (300ms delay)
+      7. Provide methods for all API endpoints (getTasks, createTask, updateTask, etc.)
+
+    implementation_notes:
+      - "Use fetch API (native)"
+      - "Create base fetchWithAuth() wrapper"
+      - "Export typed methods: getTasks(), createTask(data), etc."
+      - "Handle pagination (offset, limit query params)"
+      - "Handle filters (status, priority, tags, search)"
+      - "Return typed responses: Promise<Task>, Promise<Task[]>"
+
+    usage_example: |
+      "Use the api_client_generator skill to generate frontend/lib/api.ts"
+
+# Agent vs Skill Usage Guidelines
+# ================================
+#
+# | Type    | Purpose                    | When to Use                  | Command Pattern                              |
+# |---------|----------------------------|------------------------------|----------------------------------------------|
+# | Skill   | Generate boilerplate code  | Before manual implementation | "Use the <skill_name> skill to generate..." |
+# | Agent   | Validate existing code     | After implementation         | "Create the <agent_name> agent and RUN it"  |
+#
+# Examples:
+# ---------
+# Skill:  "Use the jwt_middleware_generator skill to generate backend/src/api/auth.py"
+# Agent:  "Create the security_auditor agent and run it on backend/src/api/"
+#
+# Workflow:
+# ---------
+# 1. Constitution Phase (Current): Specify agents in this file
+# 2. Spec Writing Phase: Write detailed specs
+# 3. Agent Creation Phase: Create Spec Validator Agent, run on specs
+# 4. Implementation Phase: Use skills to generate boilerplate (auth.py, api.ts)
+# 5. Audit Phase: Create and run Security Audit Agent
+# 6. Integration Phase: Create and run API Contract Agent

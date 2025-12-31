@@ -61,3 +61,30 @@ test_*.txt
 *.tmp
 *.bak
 *.orig
+
+# Phase 1 Legacy Files (CLI App)
+/phase-1/
+/ppp2/
+demo_selection_menus.py
+FEATURE_F*_SUMMARY.md
+REQUIREMENTS_VERIFICATION.md
+PROJECT_SUMMARY.md
+DEPLOYMENT.md
+
+# Development/Debug Files
+AUTH_TEST_RESULTS.md
+AUTH_TROUBLESHOOTING.md
+REGENERATE_SECRETS.md
+CLAUDE_OUTPUT.md
+test-auth-flow.md
+FILES_TO_PUSH.md
+GITHUB_PUSH_CHECKLIST.md
+.python-version
+
+# Frontend Build Artifacts
+frontend/.next/
+frontend/out/
+frontend/tsconfig.tsbuildinfo
+
+# Backend Virtual Environment
+backend/venv/ 

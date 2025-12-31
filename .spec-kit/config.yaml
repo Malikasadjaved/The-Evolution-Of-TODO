@@ -1,0 +1,215 @@
+# Spec-Kit Plus Configuration
+# Phase 2: Full-Stack Web Application
+# Created: 2025-12-15
+
+name: hackathon-todo-fullstack
+version: "2.0.0"
+
+# =============================================================================
+# PROJECT STRUCTURE
+# =============================================================================
+structure:
+  specs_dir: specs
+  current_feature: 001-fullstack-web-app
+  feature_dir: specs/001-fullstack-web-app
+  contracts_dir: specs/001-fullstack-web-app/contracts
+  architecture_dir: specs/001-fullstack-web-app/architecture
+  checklists_dir: specs/001-fullstack-web-app/checklists
+
+# =============================================================================
+# PHASES
+# =============================================================================
+phases:
+  - name: phase1-console
+    description: "CLI todo application"
+    features:
+      - task-crud-cli
+    status: completed
+    directory: phase-1
+
+  - name: phase2-web
+    description: "Multi-user web application with JWT authentication"
+    features:
+      # Primary Tier (MVP)
+      - authentication          # JWT + Better Auth
+      - task-crud              # Basic CRUD operations
+
+      # Intermediate Tier
+      - priority-management    # HIGH, MEDIUM, LOW
+      - tags-categories        # Custom tags
+      - search-filter          # Search and filter tasks
+      - sort-tasks            # Sort by date, priority, title
+
+      # Advanced Tier
+      - recurring-tasks       # DAILY, WEEKLY, MONTHLY, YEARLY
+      - reminders             # Due date reminders
+    status: in-progress
+    directory: specs/001-fullstack-web-app
+
+  - name: phase3-chatbot
+    description: "AI chatbot with MCP integration"
+    features:
+      - mcp-tools
+      - ai-assistant
+    status: planned
+    directory: null
+
+# =============================================================================
+# CONSTITUTION
+# =============================================================================
+constitution:
+  path: .specify/memory/phase-2-constitution.md
+  version: "1.1.0"
+  phase1_path: .specify/memory/constitution.md
+
+  # Critical requirements (auto-validated)
+  critical_requirements:
+    - three_tier_architecture
+    - user_isolation
+    - jwt_authentication
+    - test_coverage_60_percent
+    - critical_path_100_percent
+
+# =============================================================================
+# WORKFLOW (Spec-Driven Development)
+# =============================================================================
+workflow:
+  stages:
+    - constitution           # Manual
+    - specification          # /sp.specify
+    - planning               # /sp.plan
+    - tasks                  # /sp.tasks
+    - implementation         # TDD (Red-Green-Refactor)
+    - audit                  # Agents (security, contracts)
+
+  gates:
+    specification:
+      - "No [NEEDS CLARIFICATION] markers"
+      - "Success criteria measurable"
+      - "Edge cases identified"
+
+    planning:
+      - "Constitution check passes"
+      - "Data model with user isolation"
+      - "API contracts specify auth requirements"
+
+    implementation:
+      - "60% overall coverage"
+      - "100% critical path coverage"
+      - "No hardcoded secrets"
+
+# =============================================================================
+# AGENTS
+# =============================================================================
+agents:
+  config_file: .spec-kit/agents.yaml
+  enabled: true
+
+  # Available agents
+  available:
+    - spec_validator           # Before implementation
+    - security_auditor         # After backend implementation
+    - api_contract_validator   # After frontend implementation
+
+  # Available skills
+  skills:
+    - jwt_middleware_generator  # Generate auth.py
+    - api_client_generator      # Generate lib/api.ts
+
+# =============================================================================
+# TECH STACK
+# =============================================================================
+stack:
+  backend:
+    framework: FastAPI
+    language: Python 3.11+
+    orm: SQLModel
+    database: PostgreSQL (Neon)
+    testing: pytest + pytest-asyncio
+
+  frontend:
+    framework: Next.js 16+
+    language: TypeScript
+    styling: Tailwind CSS
+    testing: Jest + React Testing Library
+
+# =============================================================================
+# TESTING
+# =============================================================================
+testing:
+  coverage:
+    overall_minimum: 60
+    critical_paths: 100
+
+    # Critical modules requiring 100% coverage
+    critical_modules:
+      backend:
+        - backend/src/api/auth.py
+        - backend/src/api/routes/tasks.py
+      frontend:
+        - frontend/lib/api.ts
+
+  frameworks:
+    backend: pytest
+    frontend: jest
+
+  tdd_enforced: true
+
+# =============================================================================
+# ENVIRONMENT
+# =============================================================================
+environment:
+  required:
+    backend:
+      - BETTER_AUTH_SECRET    # ≥32 characters
+      - DATABASE_URL          # PostgreSQL connection string
+      - HOST                  # Default: 0.0.0.0
+      - PORT                  # Default: 8000
+      - FRONTEND_URL          # CORS allowed origin
+
+    frontend:
+      - NEXT_PUBLIC_API_URL   # Backend API URL
+      - BETTER_AUTH_SECRET    # Must match backend
+      - BETTER_AUTH_URL       # Better Auth API route
+
+  validate_on_startup: true
+
+# =============================================================================
+# PROMPT HISTORY RECORDS
+# =============================================================================
+phr:
+  enabled: true
+  directory: history/prompts/
+  template: .specify/templates/phr-template.prompt.md
+
+  routing:
+    constitution: history/prompts/constitution/
+    feature: history/prompts/{feature_id}/
+    general: history/prompts/general/
+
+# =============================================================================
+# PERFORMANCE TARGETS
+# =============================================================================
+performance:
+  targets:
+    api_latency_p95: 200ms
+    ui_interaction: 100ms
+    initial_page_load: 3s
+
+  scale:
+    concurrent_users: 10-100
+    user_stories: 13
+    functional_requirements: 72
+
+# =============================================================================
+# GIT & VERSION CONTROL
+# =============================================================================
+git:
+  branch_pattern: "{number:03d}-{slug}"
+  main_branch: main
+
+  commit_format: |
+    {type}: {subject}
+
+    🤖 Generated with [Claude Code](https://claude.com/claude-code)
+    Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
