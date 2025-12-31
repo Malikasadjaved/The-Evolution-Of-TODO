@@ -1,5 +1,5 @@
 /**
- * Signup Page - Purple Kanban Design System
+ * Signup Page - Blue Tech Design System
  *
  * Features:
  * - Glassmorphism signup form
@@ -114,10 +114,10 @@ export default function SignupPage() {
       {/* Signup Card */}
       <div className="w-full max-w-md">
         {/* Card */}
-        <div className="bg-white/8 backdrop-blur-lg border border-purple-400/20 rounded-2xl shadow-2xl shadow-purple-500/20 p-8">
+        <div className="bg-white/8 backdrop-blur-lg border border-blue-500/20 rounded-2xl shadow-2xl shadow-blue-500/20 p-8">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-pink-500 to-orange-400 rounded-2xl mb-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl mb-4">
               <svg
                 className="w-8 h-8 text-white"
                 fill="none"
@@ -228,7 +228,7 @@ export default function SignupPage() {
               {password && (
                 <div className="mt-2">
                   <div className="flex items-center gap-2 mb-1">
-                    <div className="flex-1 h-2 bg-purple-900/50 rounded-full overflow-hidden">
+                    <div className="flex-1 h-2 bg-slate-900/50 rounded-full overflow-hidden">
                       <div
                         className={`h-full transition-all duration-300 ${
                           passwordStrength <= 25
@@ -236,7 +236,7 @@ export default function SignupPage() {
                             : passwordStrength <= 50
                               ? 'bg-yellow-500'
                               : passwordStrength <= 75
-                                ? 'bg-blue-500'
+                                ? 'bg-cyan-500'
                                 : 'bg-green-500'
                         }`}
                         style={{ width: `${passwordStrength}%` }}
@@ -301,10 +301,10 @@ export default function SignupPage() {
           {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-purple-400/20"></div>
+              <div className="w-full border-t border-blue-500/20"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-purple-900/95 text-white/60">
+              <span className="px-2 bg-slate-900/95 text-white/60">
                 Already have an account?
               </span>
             </div>

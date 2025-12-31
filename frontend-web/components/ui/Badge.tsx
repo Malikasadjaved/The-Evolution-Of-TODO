@@ -1,5 +1,5 @@
 /**
- * Badge Component - Purple Kanban Design System
+ * Badge Component - Blue Tech Design System
  *
  * Colored badges for priority and status indicators:
  * - high: Red (high priority / urgent)

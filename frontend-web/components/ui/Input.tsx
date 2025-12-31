@@ -1,14 +1,14 @@
 /**
- * Input Component - Purple Kanban Design System
+ * Input Component - Blue Tech Design System
  *
  * Glassmorphism input with validation states:
- * - default: Purple border with glassmorphic background
+ * - default: Cyan border with glassmorphic background
  * - error: Red border with error message
  * - success: Green border
  * - disabled: Reduced opacity
  *
  * Features:
- * - Focus ring with purple glow
+ * - Focus ring with cyan glow
  * - Optional label and helper text
  * - Icon support (prefix/suffix)
  * - Smooth transitions
@@ -68,7 +68,7 @@ const getStateClasses = (state: InputProps['state']): string => {
       return 'border-green-400 focus:border-green-400 focus:ring-green-400/50'
     case 'default':
     default:
-      return 'border-purple-400/30 focus:border-purple-400 focus:ring-purple-400/50'
+      return 'border-cyan-400/30 focus:border-cyan-400 focus:ring-cyan-400/50'
   }
 }
 

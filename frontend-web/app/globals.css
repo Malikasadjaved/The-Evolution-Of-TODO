@@ -3,7 +3,9 @@
 @tailwind utilities;
 
 /**
- * Purple Kanban Design System - Global Styles with Dark/Light Mode
+ * Blue Tech Design System - Modern 2025 Landing Page
+ * Dark navy background with blue/cyan accents
+ * Enhanced with animations, glassmorphism, and modern effects
  */
 
 :root {
@@ -32,28 +34,32 @@
 }
 
 .dark {
-  /* Dark Mode Colors (Purple theme) */
-  --bg-primary: #1a0f3d;
-  --bg-secondary: #2D1B69;
-  --bg-tertiary: #3d2475;
+  /* Dark Mode Colors (Blue theme) */
+  --bg-primary: #0f172a;        /* Dark navy - main background */
+  --bg-secondary: #1a1f3a;      /* Deep blue */
+  --bg-tertiary: #1e293b;       /* Slate blue */
   --text-primary: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.8);
-  --text-tertiary: rgba(255, 255, 255, 0.6);
-  --border-primary: rgba(139, 92, 246, 0.2);
-  --border-secondary: rgba(139, 92, 246, 0.3);
+  --text-secondary: #e2e8f0;    /* Light gray for body text */
+  --text-tertiary: rgba(255, 255, 255, 0.7);
+  --border-primary: rgba(37, 99, 235, 0.2);   /* Blue border */
+  --border-secondary: rgba(37, 99, 235, 0.3);
 
   /* Dark mode gradients */
-  --gradient-start: #2D1B69;
-  --gradient-end: #1a0f3d;
+  --gradient-start: #1a1f3a;    /* Deep blue */
+  --gradient-end: #2563eb;      /* Vibrant blue */
+
+  /* Accent colors */
+  --accent-cyan: #06b6d4;       /* Electric cyan */
+  --accent-blue: #2563eb;       /* Vibrant blue */
 
   /* Glassmorphism - Dark */
-  --glass-bg: rgba(255, 255, 255, 0.08);
-  --glass-border: rgba(139, 92, 246, 0.2);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(37, 99, 235, 0.2);
 
   /* Scrollbar - Dark */
-  --scrollbar-track: rgba(26, 15, 61, 0.5);
-  --scrollbar-thumb: rgba(139, 92, 246, 0.3);
-  --scrollbar-thumb-hover: rgba(139, 92, 246, 0.5);
+  --scrollbar-track: rgba(15, 23, 42, 0.5);
+  --scrollbar-thumb: rgba(37, 99, 235, 0.3);
+  --scrollbar-thumb-hover: rgba(37, 99, 235, 0.5);
 }
 
 * {
@@ -66,9 +72,11 @@ html {
   height: 100%;
 }
 
+/* Modern Animated Gradient Mesh Background */
 body {
   min-height: 100vh;
-  background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+  position: relative;
+  overflow-x: hidden;
   color: var(--text-primary);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
@@ -78,7 +86,111 @@ body {
   transition: background 0.3s ease, color 0.3s ease;
 }
 
-/* Custom scrollbar with theme support */
+/* Base gradient background - Dark navy with blue gradient */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+  background: linear-gradient(135deg, #0f172a 0%, #1a1f3a 50%, #0f172a 100%);
+}
+
+/* Floating gradient orbs (animated mesh effect) - Blue/Cyan theme */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(37, 99, 235, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(6, 182, 212, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(37, 99, 235, 0.1) 0%, transparent 50%);
+  animation: floatingOrbs 20s ease-in-out infinite;
+}
+
+@keyframes floatingOrbs {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(10px, -10px) scale(1.05);
+  }
+  50% {
+    transform: translate(-5px, 10px) scale(0.95);
+  }
+  75% {
+    transform: translate(15px, 5px) scale(1.02);
+  }
+}
+
+/* Enhanced Glassmorphism - Blue theme */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  box-shadow:
+    0 8px 32px 0 rgba(37, 99, 235, 0.15),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Neumorphic shadow (soft 3D effect) - Blue theme */
+.neomorphic {
+  box-shadow:
+    8px 8px 16px rgba(0, 0, 0, 0.3),
+    -8px -8px 16px rgba(37, 99, 235, 0.05);
+}
+
+/* Shimmer loading animation */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.05) 75%
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Smooth page transitions */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms ease-out, transform 300ms ease-out;
+}
+
+.page-transition-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.page-transition-exit-active {
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: opacity 200ms ease-in, transform 200ms ease-in;
+}
+
+/* Custom scrollbar with gradient thumb */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -86,13 +198,31 @@ body {
 
 ::-webkit-scrollbar-track {
   background: var(--scrollbar-track);
+  border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border-radius: 5px;
+  background: linear-gradient(180deg, rgba(37, 99, 235, 0.5), rgba(6, 182, 212, 0.5));
+  border-radius: 10px;
+  transition: background 0.3s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover);
+  background: linear-gradient(180deg, rgba(37, 99, 235, 0.7), rgba(6, 182, 212, 0.7));
+}
+
+/* Glow text effect - Blue theme */
+.text-glow {
+  text-shadow:
+    0 0 10px rgba(37, 99, 235, 0.5),
+    0 0 20px rgba(37, 99, 235, 0.3),
+    0 0 30px rgba(37, 99, 235, 0.2);
+}
+
+/* Card hover glow - Blue/Cyan theme */
+.card-glow-hover:hover {
+  box-shadow:
+    0 0 20px rgba(37, 99, 235, 0.3),
+    0 0 40px rgba(6, 182, 212, 0.2),
+    0 8px 32px rgba(37, 99, 235, 0.25);
 }

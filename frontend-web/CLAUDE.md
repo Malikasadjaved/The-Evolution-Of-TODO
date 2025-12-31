@@ -309,14 +309,220 @@ npm install  # Install all dependencies
 - Check backend `FRONTEND_URL` matches `http://localhost:3000`
 - Verify CORS middleware in `backend/src/api/main.py`
 
-## Next Steps
+## Current Status & Next Steps
 
-1. ✅ **Phase 1 (Setup)**: Complete
-2. ⏭️ **Phase 2 (Foundational)**: Implement core infrastructure
-   - T024-T037: TypeScript types, API client, Better Auth, UI components
-3. ⏭️ **Phase 3 (US1 - Authentication)**: Build login/signup pages
-4. ⏭️ **Phase 4+ (User Stories)**: Implement features incrementally
+### ✅ **Completed Phases**
+1. ✅ **Phase 1 (Setup)**: Project structure, configs, dependencies
+2. ✅ **Phase 2 (Core Features)**: Authentication, CRUD, API integration
+3. ✅ **Phase 2.5 (Modern UI/UX)**: Framer Motion animations, glassmorphism, gradient mesh
+
+### 🚧 **In Progress**
+- **Phase 2.6 (Design System)**: Button & typography standardization
+  - Button component refinement (font-weight, sizes, touch targets)
+  - Typography scale harmonization (1.25 ratio)
+  - Design tokens system
+
+### 📋 **Planned**
+- Custom font loading (Inter or similar)
+- IconButton component variant
+- Accessibility audit (WCAG AA compliance)
+- Performance optimization (lazy loading, code splitting)
 
 ---
 
-**Frontend Setup Complete**: Ready for Phase 2 (Foundational) implementation.
+## 🚀 Quick Start (Running Frontend)
+
+> **📌 FOR CLAUDE: When user says "run frontend" or "start frontend-web"**
+
+```bash
+# Navigate to frontend directory
+cd "D:\new project\Hackthon 2\To-do-app\frontend-web"
+
+# Install dependencies (if first time or package.json changed)
+npm install --legacy-peer-deps
+
+# Start development server
+npm run dev
+
+# Expected output:
+# ✓ Next.js 16.0.10 (Turbopack)
+# ✓ Local: http://localhost:3000
+# ✓ Ready in 3-4s
+```
+
+**Access**: http://localhost:3000
+
+**Common Issues**:
+- Port 3000 in use → Kill process: `Stop-Process -Id <pid> -Force`
+- Lock file error → Delete: `rm -f .next/dev/lock`
+- Module not found → Reinstall: `npm install --legacy-peer-deps`
+
+---
+
+## 🎨 Design System Standards (Phase 2.5+)
+
+### **Animation System (Framer Motion)**
+```tsx
+import { motion, AnimatePresence } from 'framer-motion'
+
+// Spring physics (default settings)
+<motion.div
+  whileHover={{ scale: 1.02 }}
+  whileTap={{ scale: 0.98 }}
+  transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+>
+  Interactive Element
+</motion.div>
+
+// Stagger effect (for lists)
+{items.map((item, index) => (
+  <motion.div
+    key={item.id}
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay: index * 0.05 }}  // 50ms stagger
+  />
+))}
+
+// Layout animations (sliding indicators)
+<motion.div layoutId="activeTab" />  // Shared element transitions
+```
+
+### **Button Component Standards**
+
+**Sizes** (defined in `components/ui/Button.tsx`):
+| Size | Padding | Font Size | Min Height | Use Case |
+|------|---------|-----------|------------|----------|
+| sm | `px-3 py-2` | `text-sm` (14px) | 32px | Compact actions, mobile |
+| md | `px-4 py-3` | `text-base` (16px) | 40px | Default, most common |
+| lg | `px-6 py-4` | `text-lg` (18px) | 48px | Primary CTAs |
+| xl | `px-8 py-5` | `text-xl` (20px) | 56px | Hero sections |
+
+**Variants**:
+- `primary`: Coral gradient (pink-500 → orange-400)
+- `secondary`: Purple border, transparent background
+- `danger`: Solid red (destructive actions)
+- `ghost`: Transparent (subtle actions)
+
+**Features**:
+- ✅ Ripple effect on click (Material Design)
+- ✅ Spring physics (hover: scale 1.02, tap: scale 0.98)
+- ✅ Loading state with spinner
+- ✅ Disabled state (40% opacity)
+- ✅ Focus ring (2px purple, 100% opacity)
+
+**Usage**:
+```tsx
+import { Button } from '@/components/ui/Button'
+
+<Button variant="primary" size="md">Submit</Button>
+<Button variant="secondary" loading>Loading...</Button>
+<Button variant="danger" disabled>Delete</Button>
+```
+
+**⚠️ IMPORTANT**: NEVER use native `<button>` tags. Always use the Button component for consistency.
+
+### **Typography Scale (2025 Standard)**
+
+**Harmonious 1.25 Ratio (Major Third)**:
+```tsx
+text-xs:    12px  (badges, captions)
+text-sm:    14px  (form labels, helper text)
+text-base:  16px  (body text, buttons)
+text-lg:    20px  (section headings)
+text-xl:    25px  (page headings)
+text-2xl:   32px  (hero headings)
+text-3xl:   40px  (landing page titles)
+text-4xl:   64px  (hero sections)
+```
+
+**Font Weights**:
+- `font-light` (300): Subtitles, captions
+- `font-normal` (400): Body text
+- `font-medium` (500): **Buttons, secondary headings**
+- `font-semibold` (600): Primary headings
+- `font-bold` (700): Emphasis, callouts
+
+**Line Heights** (set explicitly):
+- Body text: `leading-relaxed` (1.625)
+- Headings: `leading-tight` (1.25)
+- Buttons: `leading-normal` (1.5)
+
+**Example**:
+```tsx
+<h1 className="text-4xl font-bold leading-tight">Hero Title</h1>
+<p className="text-lg font-normal leading-relaxed">Subtitle text</p>
+<Button className="text-base font-medium">Action</Button>
+```
+
+### **Color System**
+
+**Glassmorphism**:
+```css
+background: rgba(255, 255, 255, 0.08);
+backdrop-filter: blur(20px);
+border: 1px solid rgba(139, 92, 246, 0.2);
+```
+
+**Gradient Mesh** (background):
+```css
+/* Animated floating orbs */
+background:
+  radial-gradient(circle at 20% 30%, rgba(168, 85, 247, 0.15) 0%, transparent 50%),
+  radial-gradient(circle at 80% 70%, rgba(236, 72, 153, 0.12) 0%, transparent 50%);
+animation: floatingOrbs 20s ease-in-out infinite;
+```
+
+**Priority-Based Colors**:
+- HIGH: `bg-red-500`, `text-red-400` (danger, urgent)
+- MEDIUM: `bg-yellow-500`, `text-yellow-400` (warning, important)
+- LOW: `bg-green-500`, `text-green-400` (success, normal)
+
+### **Accessibility Requirements**
+
+**Touch Targets** (mobile):
+- Minimum: 44px x 44px (Apple HIG, Material Design)
+- Implementation: `min-h-[44px] min-w-[44px]`
+
+**Contrast Ratios** (WCAG AA):
+- Normal text: 4.5:1 minimum
+- Large text (18px+): 3:1 minimum
+- Interactive elements: 3:1 minimum
+
+**Keyboard Navigation**:
+- All interactive elements must be focusable
+- Focus ring: 2px solid, 100% opacity
+- Tab order follows visual order
+
+**Screen Readers**:
+- Icon-only buttons: `aria-label` required
+- Loading states: `aria-busy="true"`
+- Disabled states: `aria-disabled="true"`
+
+---
+
+## 📁 Component Structure
+
+```
+components/
+├── ui/                          # Design system components
+│   ├── Button.tsx               # ✅ Primary button (with ripple)
+│   ├── Badge.tsx                # Status indicators
+│   ├── Input.tsx                # Form inputs
+│   ├── Select.tsx               # Dropdowns
+│   └── Toast.tsx                # Notifications
+├── TaskCard.tsx                 # ✅ Animated task display
+├── TaskForm.tsx                 # Task create/edit modal
+├── Calendar.tsx                 # ✅ Animated calendar widget
+├── LoadingSkeleton.tsx          # ✅ Shimmer loading states
+├── SearchBar.tsx                # Debounced search
+├── SortDropdown.tsx             # Sort controls
+├── ConfirmDialog.tsx            # Confirmation modals
+└── EmptyState.tsx               # Empty state illustrations
+```
+
+**✅ = Enhanced with Framer Motion animations**
+
+---
+
+**Frontend Ready**: Modern UI/UX with animations complete. Design system standardization in progress.

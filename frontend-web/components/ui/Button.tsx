@@ -1,35 +1,42 @@
 /**
- * Button Component - Purple Kanban Design System
+ * Button Component - Blue Tech Design System
  *
  * Glassmorphism button with 4 variants:
- * - primary: Coral gradient with pink shadow glow
- * - secondary: Transparent with purple border
+ * - primary: Blue-Cyan gradient with cyan shadow glow
+ * - secondary: Transparent with cyan border
  * - danger: Solid red
  * - ghost: Transparent hover effect
  *
- * All variants include smooth 300ms transitions and hover effects.
+ * Features:
+ * - Smooth 300ms transitions and hover effects
+ * - Ripple effect on click (Material Design inspired)
+ * - Spring physics animations
  */
 
-import React from 'react'
+'use client'
+
+import React, { useState } from 'react'
+import { motion } from 'framer-motion'
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   /**
    * Button variant
-   * - primary: Coral gradient (default)
-   * - secondary: Purple border
+   * - primary: Blue-Cyan gradient (default)
+   * - secondary: Cyan border
    * - danger: Red solid
    * - ghost: Transparent
    */
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost'
 
   /**
-   * Button size
-   * - sm: Small (px-4 py-2, text-sm)
-   * - md: Medium (px-6 py-3, text-base) - default
-   * - lg: Large (px-8 py-4, text-lg)
+   * Button size (2025 standards with minimum touch targets)
+   * - sm: Small (px-3 py-2, text-sm, 32px min-height) - Compact actions, mobile
+   * - md: Medium (px-4 py-3, text-base, 40px min-height) - Default, most common
+   * - lg: Large (px-6 py-4, text-lg, 48px min-height) - Primary CTAs
+   * - xl: Extra Large (px-8 py-5, text-xl, 56px min-height) - Hero sections, landing pages
    */
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'sm' | 'md' | 'lg' | 'xl'
 
   /**
    * Full width button
@@ -59,17 +66,17 @@ const getVariantClasses = (variant: ButtonProps['variant']): string => {
   switch (variant) {
     case 'primary':
       return [
-        'bg-gradient-to-r from-pink-500 to-orange-400',
-        'hover:shadow-lg hover:shadow-pink-500/50',
+        'bg-gradient-to-r from-blue-600 to-cyan-500',
+        'hover:shadow-lg hover:shadow-cyan-500/50',
         'hover:-translate-y-0.5',
         'text-white',
       ].join(' ')
 
     case 'secondary':
       return [
-        'border border-purple-400',
+        'border border-cyan-400',
         'bg-transparent',
-        'hover:bg-purple-500/10',
+        'hover:bg-cyan-500/10',
         'text-white',
       ].join(' ')
 
@@ -94,16 +101,18 @@ const getVariantClasses = (variant: ButtonProps['variant']): string => {
 }
 
 /**
- * Get size-specific Tailwind classes
+ * Get size-specific Tailwind classes (2025 standards)
  */
 const getSizeClasses = (size: ButtonProps['size']): string => {
   switch (size) {
     case 'sm':
-      return 'px-4 py-2 text-sm'
+      return 'px-3 py-2 text-sm min-h-[32px]'  // Compact, mobile-friendly
     case 'md':
-      return 'px-6 py-3 text-base'
+      return 'px-4 py-3 text-base min-h-[40px]'  // Default, 44px touch target
     case 'lg':
-      return 'px-8 py-4 text-lg'
+      return 'px-6 py-4 text-lg min-h-[48px]'  // Primary CTAs
+    case 'xl':
+      return 'px-8 py-5 text-xl min-h-[56px]'  // Hero sections, landing pages
     default:
       return getSizeClasses('md')
   }
@@ -146,19 +155,22 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       loading = false,
       children,
       className = '',
+      onClick,
       ...props
     },
     ref
   ) => {
+    const [ripples, setRipples] = useState<Array<{ x: number; y: number; id: number }>>([])
+
     const baseClasses = [
       'rounded-lg',
-      'font-semibold',
+      'font-medium',  // 2025 standard: 500 weight for better readability
       'transition-all duration-300 ease-in-out',
       'focus:outline-none',
-      'focus:ring-2 focus:ring-purple-400/50',
-      'disabled:opacity-50 disabled:cursor-not-allowed',
+      'focus:ring-2 focus:ring-purple-400',  // 100% opacity for visibility
+      'disabled:opacity-40 disabled:cursor-not-allowed',  // Better distinction
       'disabled:hover:translate-y-0',
-      'relative',
+      'relative overflow-hidden',
       'inline-flex items-center justify-center gap-2',
     ]
 
@@ -176,13 +188,56 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       .filter(Boolean)
       .join(' ')
 
+    const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (disabled || loading) return
+
+      // Create ripple effect
+      const button = e.currentTarget
+      const rect = button.getBoundingClientRect()
+      const x = e.clientX - rect.left
+      const y = e.clientY - rect.top
+      const newRipple = { x, y, id: Date.now() }
+
+      setRipples((prev) => [...prev, newRipple])
+
+      // Remove ripple after animation
+      setTimeout(() => {
+        setRipples((prev) => prev.filter((r) => r.id !== newRipple.id))
+      }, 600)
+
+      onClick?.(e)
+    }
+
     return (
-      <button
+      <motion.button
         ref={ref}
         className={allClasses}
         disabled={disabled || loading}
-        {...props}
+        onClick={handleClick}
+        whileHover={!disabled && !loading ? { scale: 1.02 } : {}}
+        whileTap={!disabled && !loading ? { scale: 0.98 } : {}}
+        transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+        {...(props as any)}
       >
+        {/* Ripple effects */}
+        {ripples.map((ripple) => (
+          <motion.span
+            key={ripple.id}
+            className="absolute rounded-full bg-white/30 pointer-events-none"
+            style={{
+              left: ripple.x,
+              top: ripple.y,
+              width: 10,
+              height: 10,
+              marginLeft: -5,
+              marginTop: -5,
+            }}
+            initial={{ scale: 0, opacity: 1 }}
+            animate={{ scale: 20, opacity: 0 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+          />
+        ))}
+
         {loading && (
           <svg
             className="animate-spin h-5 w-5"
@@ -205,8 +260,8 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             />
           </svg>
         )}
-        {children}
-      </button>
+        <span className="relative z-10">{children}</span>
+      </motion.button>
     )
   }
 )

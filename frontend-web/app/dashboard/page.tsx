@@ -1,21 +1,25 @@
 /**
- * Dashboard Page - Kanban Board
+ * Dashboard Page - Professional Blue Tech Design
  *
- * Full-featured task management dashboard with:
- * - 2-column Kanban board (INCOMPLETE | COMPLETE)
- * - Task cards with glassmorphism styling
- * - Search and filter functionality
- * - Right sidebar with calendar and upcoming tasks
- * - Create, update, delete tasks
+ * Master-level dashboard with:
+ * - Modern glassmorphism UI matching landing page
+ * - Comprehensive task management (CRUD operations)
+ * - Advanced search, filters, and sorting
+ * - Interactive Kanban board with drag-drop ready
+ * - Calendar integration with task indicators
+ * - Real-time stats and analytics
+ * - Smooth Framer Motion animations
  */
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Select'
 import { SearchBar } from '@/components/SearchBar'
+import { PremiumSearchBar } from '@/components/PremiumSearchBar'
 import { SortDropdown } from '@/components/SortDropdown'
 import { TaskCard } from '@/components/TaskCard'
 import { TaskForm } from '@/components/TaskForm'
@@ -23,10 +27,16 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { EmptyState } from '@/components/EmptyState'
 import { Calendar } from '@/components/Calendar'
+import { UserMenu } from '@/components/UserMenu'
+import { ChatBox } from '@/components/ChatBox'
+import { CommandPalette } from '@/components/CommandPalette'
+import { FABGroup } from '@/components/FABGroup'
+import { StatsGrid } from '@/components/StatsGrid'
 import { useAuth } from '@/hooks/useAuth'
 import { useTasks, useDeleteTask, useToggleTaskStatus } from '@/hooks/useTasks'
 import { useToast } from '@/components/ui/Toast'
 import { useNotifications } from '@/hooks/useNotifications'
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import type { Task } from '@/types/api'
 
 type ViewMode = 'board' | 'list'
@@ -43,6 +53,12 @@ export default function DashboardPage() {
   const [filterTags, setFilterTags] = useState<string>('all')
   const [sortField, setSortField] = useState<string>('')
   const [sortOrder, setSortOrder] = useState<string>('asc')
+  const [isRightPanelOpen, setIsRightPanelOpen] = useState(true)
+
+  // Command palette and chatbox state
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
+  const [isChatBoxOpen, setIsChatBoxOpen] = useState(false)
+  const chatBoxRef = useRef<{ toggleChat: () => void } | null>(null)
 
   // Fetch tasks with all filters and sorting (backend filtering)
   const { data: tasks, isLoading: isLoadingTasks } = useTasks(
@@ -149,7 +165,7 @@ export default function DashboardPage() {
     setTaskToDelete(undefined)
   }
 
-  // Handler: Open Chat Assistant with authentication token
+  // Handler: Open Chat Assistant in new tab (legacy - now integrated)
   const handleOpenChatAssistant = () => {
     // Get JWT token from localStorage
     const token = localStorage.getItem('auth_token')
@@ -176,9 +192,6 @@ export default function DashboardPage() {
         taskId,
         status,
       })
-      // toast.success(
-      //   status === 'COMPLETE' ? 'Task marked complete!' : 'Task marked incomplete'
-      // )
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Failed to update task status'
@@ -186,14 +199,51 @@ export default function DashboardPage() {
     }
   }
 
+  // Handler: Apply filter from command palette
+  const handleApplyFilter = (filter: { type: string; value: string }) => {
+    if (filter.type === 'priority') {
+      setFilterPriority(filter.value)
+    } else if (filter.type === 'status') {
+      setFilterStatus(filter.value)
+    }
+  }
+
+  // Handler: Open chatbox programmatically
+  const handleOpenChatBox = () => {
+    setIsChatBoxOpen((prev) => !prev)
+  }
+
+  // Handler: ChatBox toggle callback
+  const handleChatBoxToggle = (isOpen: boolean) => {
+    setIsChatBoxOpen(isOpen)
+  }
+
+  // Setup global keyboard shortcuts
+  useKeyboardShortcuts({
+    onOpenCommandPalette: () => {
+      // Command palette has its own keyboard handling (Cmd+K)
+      // This is just for consistency
+    },
+    onNewTask: handleCreateTask,
+    onOpenAIChat: handleOpenChatBox,
+    onEscape: () => {
+      setIsTaskFormOpen(false)
+      setIsDeleteDialogOpen(false)
+    },
+  })
+
   // Show loading state
   if (isLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mb-4"></div>
-          <p className="text-white/60">Loading...</p>
-        </div>
+        <motion.div
+          className="text-center"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+        >
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mb-4"></div>
+          <p className="text-white/60">Loading your workspace...</p>
+        </motion.div>
       </div>
     )
   }
@@ -214,149 +264,119 @@ export default function DashboardPage() {
     new Set((tasks || []).flatMap((task) => task.tags || []))
   )
 
+  // Calculate productivity stats
+  const totalTasks = filteredTasks?.length || 0
+  const completedToday = filteredTasks?.filter(
+    (task) =>
+      task.status === 'COMPLETE' &&
+      task.updated_at &&
+      new Date(task.updated_at).toDateString() === new Date().toDateString()
+  ).length || 0
+  const completionRate =
+    totalTasks > 0 ? Math.round((completeTasks?.length || 0) / totalTasks * 100) : 0
+
   // Column configuration
   const columns: Array<{
     status: TaskStatus
     title: string
     tasks: Task[] | undefined
-    color: string
-    dotColor: string
+    gradient: string
+    iconColor: string
+    icon: React.ReactNode
   }> = [
     {
       status: 'INCOMPLETE',
       title: 'To Do',
       tasks: incompleteTasks,
-      color: 'border-red-400/30',
-      dotColor: 'bg-red-400',
+      gradient: 'from-blue-500/10 to-cyan-500/10',
+      iconColor: 'text-blue-400',
+      icon: (
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+        />
+      ),
     },
     {
       status: 'COMPLETE',
       title: 'Complete',
       tasks: completeTasks,
-      color: 'border-green-400/30',
-      dotColor: 'bg-green-400',
+      gradient: 'from-green-500/10 to-emerald-500/10',
+      iconColor: 'text-green-400',
+      icon: (
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
+      ),
     },
   ]
 
   return (
-    <div className="min-h-screen flex">
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Top Bar */}
-        <div className="bg-purple-900/80 dark:bg-purple-900/80 backdrop-blur-lg border-b border-purple-400/20 p-4 relative z-50">
-          <div className="max-w-[1800px] mx-auto">
-            {/* View Mode Tabs + Search + Filters */}
-            <div className="flex items-center gap-4 mb-4">
-              {/* View Mode Tabs */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setViewMode('board')}
-                  className={`
-                    px-4 py-2 rounded-lg font-medium transition-all
-                    ${
-                      viewMode === 'board'
-                        ? 'bg-gradient-to-r from-pink-500 to-orange-400 text-white shadow-lg shadow-pink-500/50'
-                        : 'bg-white/5 text-white/60 hover:bg-white/10'
-                    }
-                  `}
-                >
-                  Board
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`
-                    px-4 py-2 rounded-lg font-medium transition-all
-                    ${
-                      viewMode === 'list'
-                        ? 'bg-gradient-to-r from-pink-500 to-orange-400 text-white shadow-lg shadow-pink-500/50'
-                        : 'bg-white/5 text-white/60 hover:bg-white/10'
-                    }
-                  `}
-                >
-                  List
-                </button>
-              </div>
+    <div className="min-h-screen flex flex-col relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 dark:from-slate-900 dark:via-blue-950 dark:to-slate-900 light:from-gray-50 light:via-blue-50 light:to-gray-50 transition-colors duration-500">
+      {/* AI Tech Background Effects */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {/* Gradient Mesh - Animated Floating Orbs */}
+        <div className="absolute top-20 left-10 w-96 h-96 bg-blue-500/20 dark:bg-blue-500/20 light:bg-blue-400/15 rounded-full blur-3xl animate-floating-orbs" />
+        <div className="absolute bottom-20 right-10 w-80 h-80 bg-cyan-500/15 dark:bg-cyan-500/15 light:bg-cyan-400/10 rounded-full blur-3xl animate-floating-orbs" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-500/10 dark:bg-purple-500/10 light:bg-purple-400/8 rounded-full blur-3xl animate-floating-orbs" style={{ animationDelay: '4s' }} />
 
-              {/* Search Bar (debounced, backend filtering) */}
-              <SearchBar
-                onSearchChange={setSearchQuery}
-                placeholder="Search tasks..."
-                initialValue={searchQuery}
-              />
+        {/* Scanline Effect (subtle) */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-cyan-500/5 to-transparent h-2 animate-scanline opacity-30" />
 
-              {/* Filters */}
-              <Select
-                value={filterPriority}
-                onChange={(value) => setFilterPriority(value)}
-                options={[
-                  { value: 'all', label: 'All Priorities' },
-                  { value: 'HIGH', label: 'High Priority' },
-                  { value: 'MEDIUM', label: 'Medium Priority' },
-                  { value: 'LOW', label: 'Low Priority' },
-                ]}
-                placeholder="All Priorities"
-              />
+        {/* Neural Network Grid Pattern */}
+        <svg className="absolute inset-0 w-full h-full opacity-[0.03] dark:opacity-[0.03] light:opacity-[0.02]">
+          <defs>
+            <pattern id="neural-grid" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
+              <circle cx="50" cy="50" r="1.5" fill="currentColor" className="text-cyan-400" />
+              <line x1="50" y1="50" x2="100" y2="0" stroke="currentColor" strokeWidth="0.5" className="text-cyan-400/50" />
+              <line x1="50" y1="50" x2="0" y2="100" stroke="currentColor" strokeWidth="0.5" className="text-cyan-400/50" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#neural-grid)" />
+        </svg>
 
-              {allTags.length > 0 && (
-                <Select
-                  value={filterTags}
-                  onChange={(value) => setFilterTags(value)}
-                  options={[
-                    { value: 'all', label: 'All Tags' },
-                    ...allTags.map((tag) => ({ value: tag, label: tag })),
-                  ]}
-                  placeholder="All Tags"
-                />
-              )}
-
-              {/* Sort Dropdown */}
-              <SortDropdown
-                onSortChange={(sort, order) => {
-                  setSortField(sort)
-                  setSortOrder(order)
+        {/* Data Stream Effect - Vertical Lines */}
+        {[...Array(5)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-px h-32 bg-gradient-to-b from-transparent via-cyan-400/30 to-transparent animate-data-stream"
+            style={{
+              left: `${20 + i * 20}%`,
+              animationDelay: `${i * 0.8}s`,
+            }}
+          />
+        ))}
+      </div>
+      {/* Redesigned Simplified Header */}
+      <motion.header
+        className="relative bg-white/5 dark:bg-white/5 light:bg-white/80 backdrop-blur-xl border-b border-blue-500/20 dark:border-blue-500/20 light:border-gray-200 sticky top-0 z-50 transition-colors duration-300"
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      >
+        {/* Holographic Top Border Effect */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent dark:via-cyan-400/50 light:via-blue-400/50 animate-holographic-shift" style={{ backgroundSize: '200% 100%' }} />
+        <div className="max-w-[1920px] mx-auto px-6 py-4">
+          {/* Single Row: Logo + Greeting + Stats + User Menu */}
+          <div className="flex items-center justify-between gap-6">
+            {/* Left: Logo and Greeting */}
+            <div className="flex items-center gap-4">
+              <motion.div
+                className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg dark:shadow-cyan-500/30 light:shadow-blue-500/30"
+                whileHover={{
+                  scale: 1.05,
+                  rotate: 5,
+                  boxShadow: '0 0 20px rgba(6, 182, 212, 0.5)',
                 }}
-                initialSort={sortField as any}
-                initialOrder={sortOrder as any}
-              />
-
-              {/* Clear Filters Button - Show when any filter is active */}
-              {(searchQuery || filterStatus !== 'all' || filterPriority !== 'all' || filterTags !== 'all' || sortField) && (
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setSearchQuery('')
-                    setFilterStatus('all')
-                    setFilterPriority('all')
-                    setFilterTags('all')
-                    setSortField('')
-                    setSortOrder('asc')
-                  }}
-                  className="text-white/60 hover:text-white"
-                >
-                  <svg
-                    className="w-5 h-5 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                  Clear Filters
-                </Button>
-              )}
-
-              {/* Chat Assistant Button */}
-              <button
-                onClick={handleOpenChatAssistant}
-                className="px-4 py-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-lg font-medium hover:from-purple-600 hover:to-blue-600 transition-all shadow-lg shadow-purple-500/30 flex items-center"
+                whileTap={{ scale: 0.95 }}
               >
                 <svg
-                  className="w-5 h-5 mr-2"
+                  className="w-6 h-6 text-white"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -365,145 +385,378 @@ export default function DashboardPage() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
                   />
                 </svg>
-                Chat Assistant
-              </button>
-
-              {/* Create Task Button */}
-              <Button variant="primary" onClick={handleCreateTask}>
-                <svg
-                  className="w-5 h-5 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
-                New Task
-              </Button>
+              </motion.div>
+              <div>
+                <h1 className="text-xl font-bold dark:text-white light:text-gray-900 transition-colors">
+                  Dashboard
+                </h1>
+                <p className="text-sm dark:text-gray-400 light:text-gray-600 transition-colors">
+                  Welcome back, {user.name || user.email.split('@')[0]}
+                </p>
+              </div>
             </div>
 
-            {/* Stats */}
-            <div className="flex items-center gap-6 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="text-white/60">Total:</span>
-                <span className="text-white font-semibold">
-                  {filteredTasks?.length || 0}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-white/60">To Do:</span>
-                <span className="text-red-400 font-semibold">
-                  {incompleteTasks?.length || 0}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-white/60">Complete:</span>
-                <span className="text-green-400 font-semibold">
-                  {completeTasks?.length || 0}
-                </span>
-              </div>
+            {/* Center: Premium Search Bar */}
+            <div className="hidden md:flex flex-1 max-w-2xl mx-4">
+              <PremiumSearchBar
+                value={searchQuery}
+                onChange={setSearchQuery}
+                onCommandPaletteOpen={() => setIsCommandPaletteOpen(true)}
+                placeholder="Search tasks..."
+              />
+            </div>
+
+            {/* Right: User Menu + Toggle Panel */}
+            <div className="flex items-center gap-3">
+              {/* Toggle Right Panel */}
+              <motion.button
+                onClick={() => setIsRightPanelOpen(!isRightPanelOpen)}
+                className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-blue-500/20 transition-colors"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                aria-label={isRightPanelOpen ? 'Hide sidebar' : 'Show sidebar'}
+              >
+                <svg
+                  className={`w-5 h-5 text-cyan-400 transition-transform ${
+                    isRightPanelOpen ? 'rotate-180' : ''
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
+                  />
+                </svg>
+              </motion.button>
+
+              {/* User Menu */}
+              <UserMenu />
             </div>
           </div>
         </div>
+      </motion.header>
 
-        {/* Notification Blocked Warning */}
+      {/* Notification Warning Banner */}
+      <AnimatePresence>
         {permission === 'denied' && (
-          <div className="bg-red-500/20 border border-red-400/50 backdrop-blur-lg p-4">
-            <div className="max-w-[1800px] mx-auto flex items-center gap-3">
-              <svg
-                className="w-6 h-6 text-red-400 flex-shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                />
-              </svg>
-              <div className="flex-1">
-                <p className="text-red-200 font-medium">
-                  Notifications Blocked
+          <motion.div
+            className="bg-red-500/10 border-b border-red-400/30 backdrop-blur-lg"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+          >
+            <div className="max-w-[1920px] mx-auto px-6 py-3">
+              <div className="flex items-center gap-3">
+                <svg
+                  className="w-5 h-5 text-red-400 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                </svg>
+                <p className="text-sm text-red-200 flex-1">
+                  Notifications blocked. Enable to receive deadline reminders.
                 </p>
-                <p className="text-red-300/80 text-sm">
-                  You won&apos;t receive reminders for upcoming deadlines. Enable notifications in your browser settings to get notified when tasks are due soon.
-                </p>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={requestPermission}
+                >
+                  Enable
+                </Button>
               </div>
-              <button
-                onClick={requestPermission}
-                className="px-4 py-2 bg-red-500/30 hover:bg-red-500/40 border border-red-400/50 text-red-200 rounded-lg transition-all"
-              >
-                Enable Notifications
-              </button>
             </div>
-          </div>
+          </motion.div>
         )}
+      </AnimatePresence>
 
+      {/* Stats Grid Section - NEW */}
+      <StatsGrid tasks={tasks} />
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex overflow-hidden">
         {/* Kanban Board */}
-        {viewMode === 'board' && (
-          <div className="flex-1 overflow-x-auto p-6">
-            <div className="max-w-[1800px] mx-auto">
-              {isLoadingTasks ? (
-                <LoadingSkeleton type="board" count={3} />
-              ) : tasks && tasks.length === 0 ? (
-                <EmptyState
-                  type={
-                    searchQuery
-                      ? 'no-search-results'
-                      : filterStatus !== 'all' || filterPriority !== 'all' || filterTags !== 'all'
-                      ? 'no-filtered-tasks'
-                      : 'no-tasks'
+        <motion.main
+          className="flex-1 overflow-y-auto p-6"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+        >
+          <div className="max-w-[1920px] mx-auto">
+            {isLoadingTasks ? (
+              <LoadingSkeleton type="board" count={3} />
+            ) : tasks && tasks.length === 0 ? (
+              <EmptyState
+                type={
+                  searchQuery
+                    ? 'no-search-results'
+                    : filterPriority !== 'all' || filterTags !== 'all'
+                    ? 'no-filtered-tasks'
+                    : 'no-tasks'
+                }
+                searchQuery={searchQuery}
+                onAction={() => {
+                  if (searchQuery) {
+                    setSearchQuery('')
+                  } else if (filterPriority !== 'all' || filterTags !== 'all') {
+                    setFilterPriority('all')
+                    setFilterTags('all')
+                  } else {
+                    handleCreateTask()
                   }
-                  searchQuery={searchQuery}
-                  onAction={() => {
-                    if (searchQuery) {
-                      setSearchQuery('')
-                    } else if (filterStatus !== 'all' || filterPriority !== 'all' || filterTags !== 'all') {
-                      setFilterStatus('all')
-                      setFilterPriority('all')
-                      setFilterTags('all')
-                    } else {
-                      handleCreateTask()
-                    }
-                  }}
-                />
-              ) : (
-                <div className="grid grid-cols-3 gap-6">
-                  {columns.map((column) => (
-                    <div key={column.status} className="flex flex-col">
-                      {/* Column Header */}
-                      <div
-                        className={`
-                        bg-white/8 backdrop-blur-lg
-                        border ${column.color}
-                        rounded-xl p-4 mb-4
-                      `}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`w-3 h-3 rounded-full ${column.dotColor}`}
-                            ></div>
-                            <h2 className="text-white font-semibold text-lg">
+                }}
+              />
+            ) : (
+              <div className="grid grid-cols-2 gap-6">
+                {columns.map((column, columnIndex) => (
+                  <motion.div
+                    key={column.status}
+                    className="flex flex-col"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: columnIndex * 0.1 }}
+                  >
+                    {/* Column Header */}
+                    <div
+                      className={`bg-gradient-to-br ${column.gradient} backdrop-blur-xl border border-blue-500/20 rounded-2xl p-6 mb-6 shadow-lg`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+                            <svg
+                              className={`w-6 h-6 ${column.iconColor}`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              {column.icon}
+                            </svg>
+                          </div>
+                          <div>
+                            <h2 className="text-2xl font-bold text-white">
                               {column.title}
                             </h2>
-                            <span className="text-white/60 text-sm">
-                              {column.tasks?.length || 0}
+                            <p className="text-sm text-gray-400">
+                              {column.tasks?.length || 0} tasks
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          {/* Progress Ring */}
+                          <div className="relative w-16 h-16">
+                            <svg className="w-16 h-16 transform -rotate-90">
+                              <circle
+                                cx="32"
+                                cy="32"
+                                r="28"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                                fill="none"
+                                className="text-white/10"
+                              />
+                              <circle
+                                cx="32"
+                                cy="32"
+                                r="28"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                                fill="none"
+                                strokeLinecap="round"
+                                className={column.iconColor}
+                                strokeDasharray={`${
+                                  ((column.tasks?.length || 0) / totalTasks) * 176
+                                } 176`}
+                              />
+                            </svg>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <span className="text-sm font-bold text-white">
+                                {totalTasks > 0
+                                  ? Math.round(
+                                      ((column.tasks?.length || 0) / totalTasks) * 100
+                                    )
+                                  : 0}
+                                %
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Task Cards */}
+                    <div className="space-y-4 flex-1 min-h-[500px]">
+                      <AnimatePresence mode="popLayout">
+                        {column.tasks?.length === 0 ? (
+                          <motion.div
+                            className="bg-white/5 backdrop-blur-lg border border-blue-500/10 rounded-2xl p-12 text-center"
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                          >
+                            <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                              <svg
+                                className="w-8 h-8 text-gray-500"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
+                                />
+                              </svg>
+                            </div>
+                            <p className="text-gray-400 text-sm">
+                              No tasks in this column
+                            </p>
+                          </motion.div>
+                        ) : (
+                          column.tasks?.map((task, index) => (
+                            <TaskCard
+                              key={task.id}
+                              task={task}
+                              index={index}
+                              onClick={() => handleEditTask(task)}
+                              onDelete={handleDeleteTask}
+                              onToggleStatus={handleToggleStatus}
+                            />
+                          ))
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </div>
+        </motion.main>
+
+        {/* Right Sidebar Panel */}
+        <AnimatePresence>
+          {isRightPanelOpen && (
+            <motion.aside
+              className="w-[380px] bg-white/5 backdrop-blur-xl border-l border-blue-500/20 overflow-y-auto"
+              initial={{ x: 380, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 380, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            >
+              <div className="p-6 space-y-6">
+                {/* Calendar Widget */}
+                <motion.div
+                  className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 backdrop-blur-lg border border-blue-500/20 rounded-2xl p-6"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                >
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 bg-cyan-500/20 rounded-lg flex items-center justify-center">
+                      <svg
+                        className="w-5 h-5 text-cyan-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-white">Calendar</h3>
+                  </div>
+                  <Calendar tasks={tasks} />
+                </motion.div>
+
+                {/* Upcoming Tasks */}
+                <motion.div
+                  className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 backdrop-blur-lg border border-purple-500/20 rounded-2xl p-6"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                >
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                      <svg
+                        className="w-5 h-5 text-purple-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-white">
+                      Upcoming Deadlines
+                    </h3>
+                  </div>
+
+                  <div className="space-y-3">
+                    {tasks
+                      ?.filter(
+                        (task) =>
+                          task.due_date &&
+                          task.status !== 'COMPLETE' &&
+                          new Date(task.due_date) >= new Date()
+                      )
+                      .sort(
+                        (a, b) =>
+                          new Date(a.due_date!).getTime() -
+                          new Date(b.due_date!).getTime()
+                      )
+                      .slice(0, 5)
+                      .map((task, index) => (
+                        <motion.div
+                          key={task.id}
+                          className="bg-white/5 backdrop-blur-lg border border-purple-500/20 rounded-xl p-4 hover:bg-white/10 transition-colors cursor-pointer group"
+                          onClick={() => handleEditTask(task)}
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.6 + index * 0.05 }}
+                          whileHover={{ scale: 1.02, x: -2 }}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <p className="text-white text-sm font-medium flex-1 group-hover:text-cyan-300 transition-colors">
+                              {task.title}
+                            </p>
+                            <span
+                              className={`text-xs px-2 py-1 rounded-full ${
+                                task.priority === 'HIGH'
+                                  ? 'bg-red-500/20 text-red-300'
+                                  : task.priority === 'MEDIUM'
+                                  ? 'bg-yellow-500/20 text-yellow-300'
+                                  : 'bg-green-500/20 text-green-300'
+                              }`}
+                            >
+                              {task.priority}
                             </span>
                           </div>
-                          <button className="text-white/60 hover:text-white transition-colors">
+                          <div className="flex items-center gap-2">
                             <svg
-                              className="w-5 h-5"
+                              className="w-4 h-4 text-gray-400"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -512,157 +765,54 @@ export default function DashboardPage() {
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                                 strokeWidth={2}
-                                d="M12 4v16m8-8H4"
+                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                               />
                             </svg>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Task Cards */}
-                      <div className="space-y-4 flex-1">
-                        {column.tasks?.length === 0 ? (
-                          <div className="bg-white/5 backdrop-blur-lg border border-purple-400/10 rounded-xl p-8 text-center">
-                            <p className="text-white/40 text-sm">
-                              No tasks in this column
+                            <p className="text-xs text-gray-400">
+                              {new Date(task.due_date!).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })}
                             </p>
                           </div>
-                        ) : (
-                          column.tasks?.map((task) => (
-                            <TaskCard
-                              key={task.id}
-                              task={task}
-                              onClick={() => handleEditTask(task)}
-                              onDelete={handleDeleteTask}
-                              onToggleStatus={handleToggleStatus}
+                        </motion.div>
+                      ))}
+
+                    {(!tasks ||
+                      tasks.filter(
+                        (task) =>
+                          task.due_date &&
+                          task.status !== 'COMPLETE' &&
+                          new Date(task.due_date) >= new Date()
+                      ).length === 0) && (
+                      <div className="bg-white/5 backdrop-blur-lg border border-purple-500/20 rounded-xl p-8 text-center">
+                        <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-3">
+                          <svg
+                            className="w-6 h-6 text-gray-500"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                             />
-                          ))
-                        )}
+                          </svg>
+                        </div>
+                        <p className="text-gray-400 text-sm">
+                          No upcoming deadlines
+                        </p>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* List View */}
-        {viewMode === 'list' && (
-          <div className="flex-1 overflow-y-auto p-6">
-            <div className="max-w-4xl mx-auto">
-              <div className="bg-white/8 backdrop-blur-lg border border-purple-400/20 rounded-xl p-6">
-                <p className="text-white/60 text-center">
-                  List view coming soon...
-                </p>
+                    )}
+                  </div>
+                </motion.div>
               </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Right Sidebar */}
-      <div className="w-[320px] bg-purple-900/60 backdrop-blur-lg border-l border-purple-400/20 p-6 overflow-y-auto">
-        {/* User Profile */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-orange-400 rounded-full flex items-center justify-center">
-              <span className="text-white font-bold text-lg">
-                {user.name?.[0]?.toUpperCase() ||
-                  user.email[0]?.toUpperCase()}
-              </span>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-white font-semibold">
-                {user.name || user.email}
-              </h3>
-              <p className="text-white/60 text-sm">{user.email}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Calendar */}
-        <div className="mb-8">
-          <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
-            <svg
-              className="w-5 h-5 text-purple-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-            Calendar
-          </h3>
-          <Calendar tasks={tasks} />
-        </div>
-
-        {/* Upcoming Tasks */}
-        <div>
-          <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
-            <svg
-              className="w-5 h-5 text-purple-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            Upcoming
-          </h3>
-          <div className="space-y-3">
-            {tasks
-              ?.filter(
-                (task) =>
-                  task.due_date &&
-                  task.status !== 'COMPLETE' &&
-                  new Date(task.due_date) >= new Date()
-              )
-              .sort(
-                (a, b) =>
-                  new Date(a.due_date!).getTime() -
-                  new Date(b.due_date!).getTime()
-              )
-              .slice(0, 5)
-              .map((task) => (
-                <div
-                  key={task.id}
-                  className="bg-white/8 backdrop-blur-lg border border-purple-400/20 rounded-lg p-3 hover:bg-white/12 transition-colors cursor-pointer"
-                >
-                  <p className="text-white text-sm font-medium mb-1">
-                    {task.title}
-                  </p>
-                  <p className="text-white/60 text-xs">
-                    {new Date(task.due_date!).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                    })}
-                  </p>
-                </div>
-              ))}
-            {(!tasks ||
-              tasks.filter(
-                (task) =>
-                  task.due_date &&
-                  task.status !== 'COMPLETE' &&
-                  new Date(task.due_date) >= new Date()
-              ).length === 0) && (
-              <div className="bg-white/8 backdrop-blur-lg border border-purple-400/20 rounded-lg p-6 text-center">
-                <p className="text-white/40 text-sm">No upcoming tasks</p>
-              </div>
-            )}
-          </div>
-        </div>
+            </motion.aside>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Task Form Modal */}
@@ -687,6 +837,27 @@ export default function DashboardPage() {
         variant="danger"
         isLoading={deleteTask.isPending}
       />
+
+      {/* Command Palette */}
+      <CommandPalette
+        tasks={tasks}
+        onCreateTask={handleCreateTask}
+        onOpenAIChat={handleOpenChatBox}
+        onSelectTask={handleEditTask}
+        onApplyFilter={handleApplyFilter}
+        isOpen={isCommandPaletteOpen}
+        onOpenChange={setIsCommandPaletteOpen}
+      />
+
+      {/* Floating Action Button Group */}
+      <FABGroup
+        onCreateTask={handleCreateTask}
+        onOpenAIChat={handleOpenChatBox}
+        showAIChat={true}
+      />
+
+      {/* Integrated AI Chatbot */}
+      <ChatBox isOpen={isChatBoxOpen} onToggle={handleChatBoxToggle} />
     </div>
   )
 }
