@@ -184,6 +184,102 @@ Bash(run_in_background=true) for each service
 
 ---
 
+### **🐧 WSL (Windows Subsystem for Linux) Startup Instructions**
+
+> **⚠️ IMPORTANT**: WSL environment has different Node.js than Windows. Follow these steps when running from WSL.
+
+#### **Node.js Version Requirement**
+- **Required**: Node.js >=20.9.0 (for Next.js 16.0.10)
+- **WSL Default**: Often has Node.js 18.x (too old)
+- **Windows**: Check if newer version exists at `/mnt/c/Program Files/nodejs/`
+
+#### **Quick Check: Verify Node.js Versions**
+```bash
+# Check WSL Node.js version
+node --version
+
+# Check Windows Node.js version (if installed)
+/mnt/c/Program\ Files/nodejs/node.exe --version
+```
+
+#### **Solution 1: Use Windows Node.js from WSL (Recommended - Fast)**
+
+If Windows has Node.js >=20.9.0 installed:
+
+```bash
+# Backend (use WSL Python virtual environment)
+cd "/mnt/d/new project/Hackthon 2/To-do-app/The-Evolution-Of-TODO/backend"
+./venv/Scripts/python.exe -m uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
+
+# Frontend Web (use Windows Node.js)
+cd "/mnt/d/new project/Hackthon 2/To-do-app/The-Evolution-Of-TODO/frontend-web"
+PATH="/mnt/c/Program Files/nodejs:$PATH" npm run dev
+
+# Frontend Chatbot (use Windows Node.js)
+cd "/mnt/d/new project/Hackthon 2/To-do-app/The-Evolution-Of-TODO/frontend-chatbot"
+PATH="/mnt/c/Program Files/nodejs:$PATH" npm run dev
+```
+
+**Why This Works:**
+- Windows Node.js binaries are accessible from WSL via `/mnt/c/` path
+- No need to reinstall Node.js in WSL
+- Leverages existing Windows installation
+
+#### **Solution 2: Install Node.js 20+ in WSL (Alternative)**
+
+If you prefer native WSL Node.js:
+
+```bash
+# Install NVM (Node Version Manager)
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+
+# Load NVM
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+# Install Node.js 20
+nvm install 20
+nvm use 20
+
+# Verify
+node --version  # Should show v20.x.x
+
+# Then run services normally
+cd backend && ./venv/Scripts/python.exe -m uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
+cd frontend-web && npm run dev
+cd frontend-chatbot && npm run dev
+```
+
+#### **WSL-Specific Notes**
+
+1. **Port Verification**: WSL `netstat` may not show Windows-bound ports. Use process logs to verify startup instead:
+   ```bash
+   # Check process status
+   ps aux | grep -E "(uvicorn|next)"
+   ```
+
+2. **Path Format**: Always use forward slashes `/` in WSL, even for Windows paths:
+   ```bash
+   # ✅ Correct
+   ./venv/Scripts/python.exe
+
+   # ❌ Wrong
+   .\venv\Scripts\python.exe
+   ```
+
+3. **Windows Paths from WSL**:
+   - `C:\` → `/mnt/c/`
+   - `D:\` → `/mnt/d/`
+   - Spaces in paths: Use quotes or escape: `"/mnt/c/Program Files/nodejs"`
+
+4. **Background Tasks**: When Claude runs services in background, task IDs are used to monitor output:
+   ```bash
+   # View output of background task
+   cat /tmp/claude/<workspace>/tasks/<task-id>.output
+   ```
+
+---
+
 ### **Port Summary (For Reference)**
 
 | Service | Port | URL | Status |
@@ -246,6 +342,31 @@ npm install --legacy-peer-deps
 # Status: ✅ FIXED
 # Fix applied: backend/src/api/services/agent_client.py
 # System prompt now includes current datetime
+```
+
+#### **Issue 6: WSL Node.js Version Mismatch** 🐧
+```bash
+# Error: You are using Node.js 18.19.1. For Next.js, Node.js version ">=20.9.0" is required.
+# Frontend-web stuck at version warning, not starting
+
+# Status: ✅ FIXED (2025-12-31)
+# Root Cause: WSL has separate Node.js installation from Windows
+
+# Solution 1 - Use Windows Node.js from WSL (Fast):
+cd frontend-web
+PATH="/mnt/c/Program Files/nodejs:$PATH" npm run dev
+
+# Solution 2 - Install Node.js 20+ in WSL:
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+nvm install 20
+nvm use 20
+
+# Verify fix:
+node --version  # Should show v20.x.x or higher
+
+# Related: See "WSL Startup Instructions" section above for full details
 ```
 
 ---
@@ -346,9 +467,15 @@ VITE_OPENAI_API_KEY=<Your OpenAI key>
 ### **For Future Claude Sessions**
 
 **When user says "run the project":**
-1. Start backend in background: `./venv/Scripts/python.exe -m uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000`
-2. Start frontend-web in background: `npm run dev` (in frontend-web/)
-3. Start frontend-chatbot in background: `npm run dev` (in frontend-chatbot/)
+1. **Detect environment**: Check if WSL with `uname -r | grep -i microsoft`
+2. **If WSL detected**:
+   - Check Node.js version: `node --version`
+   - If Node.js < 20.9.0, check Windows Node.js: `/mnt/c/Program\ Files/nodejs/node.exe --version`
+   - Use Windows Node.js for frontends if available (add to PATH)
+3. **Start services in background**:
+   - Backend: `./venv/Scripts/python.exe -m uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000`
+   - Frontend-web: `PATH="/mnt/c/Program Files/nodejs:$PATH" npm run dev` (if WSL with Windows Node)
+   - Frontend-chatbot: `PATH="/mnt/c/Program Files/nodejs:$PATH" npm run dev` (if WSL with Windows Node)
 4. Monitor outputs for errors
 5. Report all 3 URLs to user
 6. Watch for port conflicts and fix automatically

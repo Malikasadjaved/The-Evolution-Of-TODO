@@ -119,6 +119,46 @@ Skill: cli-builder --feature todo-core --tier primary --include_colors false
 
 ---
 
+### 6. **wsl-environment-setup.skill.md** 🆕
+Automatically detect and configure WSL environments for cross-platform development.
+
+**Purpose**: Handle Node.js/Python version mismatches, PATH configuration, and service startup in WSL.
+
+**Parameters**:
+- `project_type`: nodejs | python | fullstack | auto-detect
+- `required_node_version`: Minimum Node.js version (default: "20.9.0")
+- `required_python_version`: Minimum Python version (default: "3.9")
+- `auto_fix`: Automatically apply fixes (default: true)
+- `prefer_windows_node`: Use Windows Node.js over WSL (default: true)
+- `services`: List of services to start (e.g., ["backend", "frontend"])
+
+**Usage**:
+```bash
+Skill: wsl-environment-setup --project_type auto-detect
+Skill: wsl-environment-setup --project_type fullstack --services ["backend", "frontend"]
+Skill: wsl-environment-setup --project_type nodejs --required_node_version "18.0.0"
+```
+
+**Features**:
+- ✅ Auto-detects WSL environment (WSL 1, WSL 2, or native Linux)
+- ✅ Identifies Node.js version mismatches between WSL and Windows
+- ✅ Applies smart fixes (Windows Node.js PATH or NVM installation)
+- ✅ Validates Python version requirements
+- ✅ Converts Windows paths to WSL paths in .env files
+- ✅ Starts multiple services in background with health checks
+- ✅ Generates comprehensive setup report with URLs
+
+**Handles Common Issues**:
+- Node.js version too old in WSL
+- PATH not persisting across sessions
+- WSL netstat not showing Windows-bound ports
+- Module not found errors (npm/npx)
+- Slow NVM installation timeouts
+
+**Based On**: PHR `007-wsl-nodejs-upgrade-project-startup.general.prompt.md` (2025-12-31)
+
+---
+
 ## How to Use Skills
 
 ### Invoking a Skill
