@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react'
 
-type Theme = 'light' | 'dark'
+type Theme = 'light' | 'dark' | 'system'
 
 interface ThemeContextType {
   theme: Theme
@@ -23,9 +23,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     if (savedTheme) {
       setThemeState(savedTheme)
     } else {
-      // Check system preference
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-      setThemeState(prefersDark ? 'dark' : 'light')
+      // Default to system preference
+      setThemeState('system')
     }
   }, [])
 
@@ -35,7 +34,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     const root = document.documentElement
     root.classList.remove('light', 'dark')
-    root.classList.add(theme)
+
+    // Resolve 'system' to actual theme
+    let resolvedTheme: 'light' | 'dark' = 'dark'
+    if (theme === 'system') {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      resolvedTheme = prefersDark ? 'dark' : 'light'
+    } else {
+      resolvedTheme = theme
+    }
+
+    root.classList.add(resolvedTheme)
     localStorage.setItem('theme', theme)
   }, [theme, mounted])
 

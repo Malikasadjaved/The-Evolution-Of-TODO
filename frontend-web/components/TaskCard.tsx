@@ -2,11 +2,13 @@
  * TaskCard Component - Animated Glassmorphism Task Card
  *
  * Features:
- * - Framer Motion animations (stagger, hover, tap)
+ * - Enhanced Framer Motion animations (stagger, hover, tap)
  * - Priority-based glow effects
  * - Animated checkbox with checkmark drawing
- * - Smooth spring physics
- * - Layout animations
+ * - Smooth spring physics (< 400ms for all animations)
+ * - Layout animations for smooth repositioning
+ * - Delete animation (slide right + fade + height collapse)
+ * - Creation animation (slide down + pop scale)
  */
 
 'use client'
@@ -15,6 +17,10 @@ import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Badge } from '@/components/ui/Badge'
 import { IconButton } from '@/components/ui/IconButton'
+import { Checkbox } from '@/components/ui/Checkbox'
+import { TaskQuickActions } from '@/components/TaskQuickActions'
+import { COLORS } from '@/lib/design-tokens'
+import { cardInteraction, layoutTransition } from '@/lib/animations'
 import type { Task } from '@/types/api'
 
 interface TaskCardProps {
@@ -23,9 +29,11 @@ interface TaskCardProps {
   onClick?: () => void
   onDelete?: (task: Task) => void
   onToggleStatus?: (taskId: number, status: 'COMPLETE' | 'INCOMPLETE') => void
+  onEdit?: (task: Task) => void
+  onUpdatePriority?: (taskId: number, priority: 'LOW' | 'MEDIUM' | 'HIGH') => void
 }
 
-export function TaskCard({ task, index = 0, onClick, onDelete, onToggleStatus }: TaskCardProps) {
+export function TaskCard({ task, index = 0, onClick, onDelete, onToggleStatus, onEdit, onUpdatePriority }: TaskCardProps) {
   // Check if task is overdue
   const isOverdue =
     task.due_date &&
@@ -63,37 +71,65 @@ export function TaskCard({ task, index = 0, onClick, onDelete, onToggleStatus }:
     LOW: 'hover:shadow-green-500/30 hover:border-green-400/50',
   }
 
+  // Get priority border color (4px left border)
+  const getPriorityBorderColor = (): string => {
+    switch (task.priority) {
+      case 'HIGH':
+        return COLORS.accent.danger // #EF4444
+      case 'MEDIUM':
+        return COLORS.accent.warning // #F59E0B
+      case 'LOW':
+        return COLORS.accent.success // #10B981
+      default:
+        return '#6B7280' // Gray-500
+    }
+  }
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95 }}
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{
+        opacity: 0,
+        x: 100,
+        height: 0,
+        marginBottom: 0,
+        transition: {
+          opacity: { duration: 0.2 },
+          x: { duration: 0.3 },
+          height: { duration: 0.2, delay: 0.15 },
+          marginBottom: { duration: 0.2, delay: 0.15 },
+        },
+      }}
       transition={{
         delay: index * 0.05, // Stagger by 50ms
         type: 'spring',
-        stiffness: 260,
-        damping: 20
+        stiffness: 400,
+        damping: 25,
+        mass: 0.8,
       }}
-      whileHover={{
-        y: -8,
-        scale: 1.02,
-        transition: { type: 'spring', stiffness: 400, damping: 10 }
-      }}
-      whileTap={{ scale: 0.98 }}
+      {...cardInteraction}
       layout
+      layoutTransition={layoutTransition}
       onClick={onClick}
       className={`
         group
         relative
         bg-white/8 backdrop-blur-lg
         border border-purple-400/20
+        border-b border-white/5
+        border-l-4
         rounded-xl
-        p-4
+        p-6
         shadow-lg shadow-purple-500/10
         ${priorityGlow[task.priority]}
         transition-all duration-300
         cursor-pointer
+        hover:bg-white/[0.03]
       `}
+      style={{
+        borderLeftColor: getPriorityBorderColor(),
+      }}
     >
       {/* Gradient overlay for completed tasks */}
       {task.status === 'COMPLETE' && (
@@ -116,82 +152,31 @@ export function TaskCard({ task, index = 0, onClick, onDelete, onToggleStatus }:
         }}
       />
 
-      {/* Action Buttons - Modern IconButton components */}
-      <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10">
-        <Link href={`/dashboard/tasks/${task.id}`} onClick={(e) => e.stopPropagation()}>
-          <IconButton
-            variant="view"
-            size="md"
-            aria-label="View task details"
-            icon={
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-            }
-          />
-        </Link>
-
-        {onDelete && (
-          <IconButton
-            variant="delete"
-            size="md"
-            aria-label="Delete task"
-            onClick={(e) => {
-              e.stopPropagation()
-              onDelete(task)
-            }}
-            icon={
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            }
-          />
-        )}
+      {/* Quick Actions Menu (Three-Dot Dropdown) */}
+      <div className="absolute top-3 right-3 z-10">
+        <TaskQuickActions
+          task={task}
+          onEdit={onEdit ? () => onEdit(task) : undefined}
+          onDelete={onDelete ? () => onDelete(task) : undefined}
+          onUpdatePriority={onUpdatePriority ? (priority) => onUpdatePriority(task.id, priority) : undefined}
+        />
       </div>
 
-      {/* Header: Animated Checkbox + Title + Priority Badge */}
+      {/* Header: Custom Checkbox + Title + Priority Badge with Glow */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-start gap-3 flex-1">
           {onToggleStatus && (
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={(e) => {
-                e.stopPropagation()
-                const newStatus = task.status === 'COMPLETE' ? 'INCOMPLETE' : 'COMPLETE'
-                onToggleStatus(task.id, newStatus)
-              }}
-              className="mt-0.5 flex-shrink-0 w-5 h-5 rounded border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-400/50"
-              style={{
-                borderColor: task.status === 'COMPLETE' ? '#a78bfa' : '#9333ea40',
-                backgroundColor: task.status === 'COMPLETE' ? '#a78bfa' : 'transparent',
-              }}
-              aria-label={task.status === 'COMPLETE' ? 'Mark incomplete' : 'Mark complete'}
-            >
-              <AnimatePresence mode="wait">
-                {task.status === 'COMPLETE' && (
-                  <motion.svg
-                    key="checkmark"
-                    initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: 1, opacity: 1 }}
-                    exit={{ pathLength: 0, opacity: 0 }}
-                    transition={{ duration: 0.3, ease: 'easeOut' }}
-                    className="w-full h-full text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <motion.path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={3}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </motion.svg>
-                )}
-              </AnimatePresence>
-            </motion.button>
+            <div className="mt-0.5" onClick={(e) => e.stopPropagation()}>
+              <Checkbox
+                checked={task.status === 'COMPLETE'}
+                onChange={(checked) => {
+                  const newStatus = checked ? 'COMPLETE' : 'INCOMPLETE'
+                  onToggleStatus(task.id, newStatus)
+                }}
+                priority={task.priority}
+                aria-label={task.status === 'COMPLETE' ? 'Mark incomplete' : 'Mark complete'}
+              />
+            </div>
           )}
 
           <h3 className={`text-white font-semibold text-lg flex-1 line-clamp-2 transition-all duration-200 ${
@@ -201,9 +186,25 @@ export function TaskCard({ task, index = 0, onClick, onDelete, onToggleStatus }:
           </h3>
         </div>
 
+        {/* Priority Badge with Glow Effect */}
         <motion.div
           whileHover={{ scale: 1.05 }}
           transition={{ type: 'spring', stiffness: 400 }}
+          className={`
+            ${task.priority === 'HIGH' ? 'glow-danger' : ''}
+            ${task.priority === 'MEDIUM' ? 'glow-warning' : ''}
+            ${task.priority === 'LOW' ? 'glow-success' : ''}
+          `}
+          style={{
+            boxShadow:
+              task.priority === 'HIGH'
+                ? `0 0 10px ${COLORS.accent.danger}50`
+                : task.priority === 'MEDIUM'
+                ? `0 0 10px ${COLORS.accent.warning}50`
+                : task.priority === 'LOW'
+                ? `0 0 10px ${COLORS.accent.success}50`
+                : 'none',
+          }}
         >
           <Badge variant={getPriorityColor(task.priority)} size="sm">
             {task.priority}
@@ -211,9 +212,15 @@ export function TaskCard({ task, index = 0, onClick, onDelete, onToggleStatus }:
         </motion.div>
       </div>
 
-      {/* Description */}
+      {/* Description with Truncation */}
       {task.description && (
-        <p className="text-white/60 text-sm mb-4 line-clamp-2">
+        <p
+          className="text-sm mb-4 line-clamp-1 truncate"
+          style={{
+            color: 'var(--text-tertiary)',
+            maxWidth: '80%',
+          }}
+        >
           {task.description}
         </p>
       )}
@@ -250,12 +257,26 @@ export function TaskCard({ task, index = 0, onClick, onDelete, onToggleStatus }:
       <div className="flex items-center justify-between gap-3 pt-3 border-t border-purple-400/10">
         <div className="flex items-center gap-3">
           {task.due_date ? (
-            <div className={`flex items-center gap-2 ${isOverdue ? 'text-red-400' : 'text-white/60'}`}>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <span className="text-sm font-medium">{formatDueDate(task.due_date)}</span>
-              {isOverdue && (
+            isOverdue ? (
+              /* Overdue Date - Pulsing Animation */
+              <motion.div
+                className="flex items-center gap-2"
+                style={{ color: COLORS.accent.danger }}
+                animate={{ opacity: [0.7, 1, 0.7] }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                }}
+              >
+                {/* Warning Icon */}
+                <span className="text-base" role="img" aria-label="Overdue warning">
+                  ⚠️
+                </span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span className="text-sm font-medium">{formatDueDate(task.due_date)}</span>
                 <motion.span
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
@@ -263,8 +284,16 @@ export function TaskCard({ task, index = 0, onClick, onDelete, onToggleStatus }:
                 >
                   Overdue
                 </motion.span>
-              )}
-            </div>
+              </motion.div>
+            ) : (
+              /* Normal Date */
+              <div className="flex items-center gap-2 text-white/60">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span className="text-sm font-medium">{formatDueDate(task.due_date)}</span>
+              </div>
+            )
           ) : (
             <div className="text-white/40 text-sm">No due date</div>
           )}

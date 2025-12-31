@@ -22,12 +22,24 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useRef, useEffect } from 'react'
 import { useTheme } from '@/hooks/useTheme'
+import { SearchSuggestions } from './SearchSuggestions'
+
+interface Task {
+  id: number
+  title: string
+  priority: 'HIGH' | 'MEDIUM' | 'LOW'
+  status: 'INCOMPLETE' | 'COMPLETE'
+  due_date?: string | null
+}
 
 interface PremiumSearchBarProps {
   value: string
   onChange: (value: string) => void
   onCommandPaletteOpen: () => void
   placeholder?: string
+  tasks?: Task[]
+  onTaskClick?: (taskId: number) => void
+  onQuickFilterClick?: (filterId: string) => void
 }
 
 export const PremiumSearchBar: React.FC<PremiumSearchBarProps> = ({
@@ -35,11 +47,38 @@ export const PremiumSearchBar: React.FC<PremiumSearchBarProps> = ({
   onChange,
   onCommandPaletteOpen,
   placeholder = 'Search tasks...',
+  tasks = [],
+  onTaskClick,
+  onQuickFilterClick,
 }) => {
   const [isFocused, setIsFocused] = useState(false)
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1)
+  const [recentSearches, setRecentSearches] = useState<string[]>([])
   const { theme } = useTheme()
   const inputRef = useRef<HTMLInputElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const isDark = theme === 'dark'
+
+  // Load recent searches from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem('recentSearches')
+    if (stored) {
+      try {
+        setRecentSearches(JSON.parse(stored))
+      } catch (e) {
+        console.error('Failed to parse recent searches:', e)
+      }
+    }
+  }, [])
+
+  // Save search to recent searches
+  const saveRecentSearch = (query: string) => {
+    if (!query.trim()) return
+    const updated = [query, ...recentSearches.filter((s) => s !== query)].slice(0, 5)
+    setRecentSearches(updated)
+    localStorage.setItem('recentSearches', JSON.stringify(updated))
+  }
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -48,6 +87,7 @@ export const PremiumSearchBar: React.FC<PremiumSearchBarProps> = ({
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
         inputRef.current?.focus()
+        setShowSuggestions(true)
       }
     }
 
@@ -55,9 +95,66 @@ export const PremiumSearchBar: React.FC<PremiumSearchBarProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false)
+        setSelectedSuggestionIndex(-1)
+      }
+    }
+
+    if (showSuggestions) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showSuggestions])
+
+  // Handle focus
+  const handleFocus = () => {
+    setIsFocused(true)
+    setShowSuggestions(true)
+  }
+
+  // Handle blur
+  const handleBlur = () => {
+    setIsFocused(false)
+    // Delay hiding suggestions to allow click events to fire
+    setTimeout(() => {
+      if (!containerRef.current?.contains(document.activeElement)) {
+        setShowSuggestions(false)
+        setSelectedSuggestionIndex(-1)
+      }
+    }, 200)
+  }
+
+  // Handle recent search click
+  const handleRecentSearchClick = (search: string) => {
+    onChange(search)
+    setShowSuggestions(false)
+    inputRef.current?.focus()
+  }
+
+  // Handle task click
+  const handleTaskClick = (taskId: number) => {
+    saveRecentSearch(value)
+    onTaskClick?.(taskId)
+    setShowSuggestions(false)
+  }
+
+  // Handle quick filter click
+  const handleQuickFilterClick = (filterId: string) => {
+    onQuickFilterClick?.(filterId)
+    setShowSuggestions(false)
+  }
+
   return (
     <motion.div
-      className="relative w-full"
+      ref={containerRef}
+      className="relative w-full max-w-[400px]"
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
@@ -176,15 +273,18 @@ export const PremiumSearchBar: React.FC<PremiumSearchBarProps> = ({
             type="text"
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && value.trim()) {
+                saveRecentSearch(value)
                 e.currentTarget.blur()
+                setShowSuggestions(false)
               }
               if (e.key === 'Escape') {
                 onChange('')
                 e.currentTarget.blur()
+                setShowSuggestions(false)
               }
             }}
             placeholder={placeholder}
@@ -195,12 +295,16 @@ export const PremiumSearchBar: React.FC<PremiumSearchBarProps> = ({
               outline-none
               text-base
               relative z-10
+              min-h-[44px]
               ${
                 isDark
                   ? 'text-white placeholder-gray-400'
                   : 'text-gray-900 placeholder-gray-500'
               }
             `}
+            aria-autocomplete="list"
+            aria-controls="search-suggestions"
+            aria-expanded={showSuggestions}
           />
 
           {/* Clear button (when text is present) */}
@@ -308,6 +412,20 @@ export const PremiumSearchBar: React.FC<PremiumSearchBarProps> = ({
           opacity: isFocused ? 1 : 0,
         }}
         transition={{ duration: 0.3 }}
+      />
+
+      {/* Search Suggestions */}
+      <SearchSuggestions
+        isOpen={showSuggestions}
+        searchQuery={value}
+        tasks={tasks}
+        recentSearches={recentSearches}
+        onTaskClick={handleTaskClick}
+        onQuickFilterClick={handleQuickFilterClick}
+        onRecentSearchClick={handleRecentSearchClick}
+        onClose={() => setShowSuggestions(false)}
+        selectedIndex={selectedSuggestionIndex}
+        onSelectIndex={setSelectedSuggestionIndex}
       />
     </motion.div>
   )

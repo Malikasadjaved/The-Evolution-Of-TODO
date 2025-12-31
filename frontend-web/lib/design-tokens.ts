@@ -159,6 +159,23 @@ export const COLORS = {
     },
   },
 
+  // Accent colors (matches CSS variables)
+  accent: {
+    primary: '#6366f1',      // Indigo
+    secondary: '#8b5cf6',    // Purple
+    success: '#10b981',      // Emerald
+    warning: '#f59e0b',      // Amber
+    danger: '#ef4444',       // Red
+    info: '#06b6d4',         // Cyan
+  },
+
+  // Background colors (CSS variables)
+  background: {
+    primary: 'var(--bg-primary)',
+    secondary: 'var(--bg-secondary)',
+    tertiary: 'var(--bg-tertiary)',
+  },
+
   // Glassmorphism
   glass: {
     background: 'bg-white/8',
@@ -166,12 +183,28 @@ export const COLORS = {
     border: 'border border-purple-400/20',
   },
 
-  // Text opacity levels (dark mode)
+  // Text opacity levels (CSS variables for better consistency)
   text: {
-    primary: 'text-white',                    // 100%
-    secondary: 'text-white/80',              // 80%
-    tertiary: 'text-white/70',               // 70% (WCAG AA compliant)
-    disabled: 'text-white/40',               // 40%
+    primary: 'var(--text-primary)',          // Almost white
+    secondary: 'var(--text-secondary)',      // Light slate
+    muted: 'var(--text-muted)',              // Muted slate
+    tertiary: 'var(--text-tertiary)',        // 40% opacity
+  },
+
+  // Border colors (CSS variables)
+  border: {
+    default: 'var(--border-default)',
+    focus: 'var(--border-focus)',
+    hover: 'var(--border-hover)',
+  },
+
+  // Glow effects (CSS variables)
+  glow: {
+    primary: 'var(--glow-primary)',
+    success: 'var(--glow-success)',
+    warning: 'var(--glow-warning)',
+    danger: 'var(--glow-danger)',
+    info: 'var(--glow-info)',
   },
 } as const
 

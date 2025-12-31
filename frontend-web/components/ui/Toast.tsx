@@ -1,23 +1,26 @@
 /**
- * Toast Component - Purple Kanban Design System
+ * Toast Component - Blue Tech Design System
  *
- * Glassmorphism notification toasts with slide-in animation:
- * - success: Green left border
- * - error: Red left border
- * - info: Blue left border
- * - warning: Yellow left border
+ * Glassmorphism notification toasts with enhanced animations:
+ * - success: Green left border + icon
+ * - error: Red left border + icon
+ * - info: Blue left border + icon
+ * - warning: Yellow left border + icon
  *
  * Features:
- * - Slide-in animation from right
- * - Auto-dismiss after duration
+ * - Slide-in animation from right (300ms spring)
+ * - Smooth slide-out on dismiss (250ms ease-out)
+ * - Auto-dismiss after duration (default: 4s)
  * - Manual dismiss with close button
- * - Fixed positioning (top-right)
- * - Context provider for global usage
+ * - Stack multiple toasts vertically
+ * - Respects prefers-reduced-motion
  */
 
 'use client'
 
 import React, { createContext, useContext, useState, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { toastVariants } from '@/lib/animations'
 
 export interface Toast {
   id: string
@@ -115,7 +118,7 @@ const getIcon = (type: Toast['type']) => {
 }
 
 /**
- * Individual Toast Component
+ * Individual Toast Component with Framer Motion
  */
 const ToastItem: React.FC<{
   toast: Toast
@@ -125,16 +128,21 @@ const ToastItem: React.FC<{
   const icon = getIcon(toast.type)
 
   return (
-    <div
+    <motion.div
+      variants={toastVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      layout
       className={[
-        'bg-purple-900/95 backdrop-blur-xl',
-        'rounded-lg p-4',
+        'bg-white/8 backdrop-blur-xl',
+        'border border-blue-500/20',
+        'rounded-xl p-4',
         'border-l-4',
         variantClasses,
-        'shadow-2xl',
+        'shadow-lg shadow-blue-500/10',
         'min-w-[320px] max-w-md',
         'flex items-start gap-3',
-        'animate-in slide-in-from-right-full duration-300',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -148,9 +156,11 @@ const ToastItem: React.FC<{
       </p>
 
       {/* Close Button */}
-      <button
+      <motion.button
         onClick={onClose}
-        className="flex-shrink-0 text-white/60 hover:text-white transition-colors"
+        className="flex-shrink-0 text-white/60 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/5"
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
         aria-label="Close notification"
       >
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -160,13 +170,13 @@ const ToastItem: React.FC<{
             clipRule="evenodd"
           />
         </svg>
-      </button>
-    </div>
+      </motion.button>
+    </motion.div>
   )
 }
 
 /**
- * Toast Container Component
+ * Toast Container Component with AnimatePresence
  */
 export const ToastContainer: React.FC = () => {
   const context = useContext(ToastContext)
@@ -175,14 +185,14 @@ export const ToastContainer: React.FC = () => {
   const { toasts, removeToast } = context
 
   return (
-    <div className="fixed top-4 right-4 z-50 flex flex-col gap-3">
-      {toasts.map((toast) => (
-        <ToastItem
-          key={toast.id}
-          toast={toast}
-          onClose={() => removeToast(toast.id)}
-        />
-      ))}
+    <div className="fixed bottom-4 right-4 z-50 flex flex-col-reverse gap-3 pointer-events-none">
+      <AnimatePresence mode="popLayout">
+        {toasts.map((toast) => (
+          <div key={toast.id} className="pointer-events-auto">
+            <ToastItem toast={toast} onClose={() => removeToast(toast.id)} />
+          </div>
+        ))}
+      </AnimatePresence>
     </div>
   )
 }
@@ -208,8 +218,8 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
 
     setToasts((prev) => [...prev, newToast])
 
-    // Auto-dismiss after duration (default 5 seconds)
-    const duration = toast.duration ?? 5000
+    // Auto-dismiss after duration (default 4 seconds)
+    const duration = toast.duration ?? 4000
     if (duration > 0) {
       setTimeout(() => {
         removeToast(id)

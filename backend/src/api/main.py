@@ -49,27 +49,27 @@ async def lifespan(app: FastAPI):
     Phase 3 requirement: T021
     """
     # Startup
-    logger.info("🚀 Server starting up...")
+    logger.info("Server starting up...")
     create_tables()
-    logger.info("✅ Database tables initialized")
-    logger.info(f"✅ Server ready on http://{settings.host}:{settings.port}")
+    logger.info("Database tables initialized")
+    logger.info(f"Server ready on http://{settings.host}:{settings.port}")
 
     yield  # Server is running
 
     # Shutdown
-    logger.info("🛑 Server shutting down gracefully...")
-    logger.info("⏳ Waiting for active requests to complete (max 30s)...")
+    logger.info("Server shutting down gracefully...")
+    logger.info("Waiting for active requests to complete (max 30s)...")
 
     # Note: FastAPI automatically waits for active requests
     # We just need to close database connections
 
     try:
         engine.dispose()
-        logger.info("✅ Database connections closed")
+        logger.info("Database connections closed")
     except Exception as e:
-        logger.error(f"❌ Error closing database connections: {e}")
+        logger.error(f"Error closing database connections: {e}")
 
-    logger.info("✅ Graceful shutdown complete")
+    logger.info("Graceful shutdown complete")
 
 
 # Create FastAPI application with lifespan
@@ -112,7 +112,7 @@ async def log_requests(request: Request, call_next: Callable) -> Response:
     client_ip = request.client.host if request.client else "unknown"
 
     # Log incoming request
-    logger.info(f"→ {request.method} {request.url.path} from {client_ip}")
+    logger.info(f"{request.method} {request.url.path} from {client_ip}")
 
     try:
         # Process request
@@ -123,7 +123,7 @@ async def log_requests(request: Request, call_next: Callable) -> Response:
 
         # Log successful response
         logger.info(
-            f"← {request.method} {request.url.path} - {response.status_code} "
+            f"{request.method} {request.url.path} - {response.status_code} "
             f"({process_time:.3f}s)"
         )
 
@@ -138,7 +138,7 @@ async def log_requests(request: Request, call_next: Callable) -> Response:
 
         # Log error
         logger.error(
-            f"✗ {request.method} {request.url.path} - ERROR: {str(e)} " f"({process_time:.3f}s)",
+            f"{request.method} {request.url.path} - ERROR: {str(e)} ({process_time:.3f}s)",
             exc_info=True,
         )
 
@@ -284,18 +284,18 @@ async def long_running_request():
     """
     import asyncio
 
-    logger.info("🔄 Long-running request started (10 seconds)")
+    logger.info("Long-running request started (10 seconds)")
     start_time = datetime.utcnow()
 
     # Simulate long processing (10 seconds)
     for i in range(10):
         await asyncio.sleep(1)
-        logger.info(f"⏱️  Long-running request progress: {i+1}/10 seconds")
+        logger.info(f"Long-running request progress: {i+1}/10 seconds")
 
     end_time = datetime.utcnow()
     duration = (end_time - start_time).total_seconds()
 
-    logger.info(f"✅ Long-running request completed ({duration:.2f}s)")
+    logger.info(f"Long-running request completed ({duration:.2f}s)")
 
     return {
         "status": "completed",

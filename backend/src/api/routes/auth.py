@@ -9,6 +9,7 @@ Endpoints:
 - GET /api/auth/session - Get current user session
 """
 
+import time
 from datetime import datetime, timedelta
 from typing import Optional
 from uuid import uuid4
@@ -63,11 +64,13 @@ def verify_password(password: str, hashed: str) -> bool:
 
 def create_jwt_token(user_id: str, email: str) -> str:
     """Create JWT token for authenticated user."""
+    now = int(time.time())
+    exp = now + (24 * 60 * 60)  # 24 hours in seconds
     payload = {
         "user_id": user_id,
         "email": email,
-        "exp": datetime.utcnow() + timedelta(hours=24),
-        "iat": datetime.utcnow(),
+        "exp": exp,
+        "iat": now,
     }
     token = jwt.encode(payload, settings.better_auth_secret, algorithm="HS256")
     return token

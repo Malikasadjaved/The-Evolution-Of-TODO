@@ -24,6 +24,24 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict
 
+# Windows stdout encoding fix
+if sys.platform == "win32":
+    import io
+    sys.stdout = io.TextIOWrapper(
+        sys.stdout.buffer,
+        encoding="utf-8",
+        errors="replace",
+        newline=None,
+        line_buffering=True
+    )
+    sys.stderr = io.TextIOWrapper(
+        sys.stderr.buffer,
+        encoding="utf-8",
+        errors="replace",
+        newline=None,
+        line_buffering=True
+    )
+
 
 class LogLevel(str, Enum):
     """Log severity levels."""
@@ -130,7 +148,13 @@ class StructuredLogger:
 
         # Output to stdout as JSON (cloud-native, 12-factor app)
         json_output = json.dumps(log_entry)
-        print(json_output, file=sys.stdout, flush=True)
+        try:
+            print(json_output, file=sys.stdout, flush=True)
+        except (OSError, ValueError) as e:
+            # Windows workaround: Invalid argument error when stdout is redirected
+            # Fall back to standard print without file parameter
+            sys.stdout.write(json_output + "\n")
+            sys.stdout.flush()
 
     def _protect_pii(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """

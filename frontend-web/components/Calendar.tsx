@@ -1,19 +1,25 @@
 /**
- * Calendar Widget Component - Enhanced with Framer Motion
+ * Calendar Widget Component - PROMPT 4 Enhanced
  *
- * Modern, interactive calendar with task integration:
- * - Animated month transitions
- * - Hover effects and tooltips
- * - Task indicators with priority colors
- * - Smooth entry/exit animations
- * - Professional glassmorphism styling
+ * Professional calendar with advanced features:
+ * - Today's date: Gradient ring + glow effect
+ * - Task indicators: Colored dots (max 3 visible)
+ * - Date hover: Tooltip with task preview
+ * - Enhanced navigation: 32x32px arrows with animations
+ * - Date filtering: Click to filter task list
+ * - View modes: Month/Week toggle
+ * - Deadline warnings: Orange (soon), Red (overdue)
+ * - Keyboard navigation: Arrow keys to navigate dates
+ * - Smooth Framer Motion animations throughout
  */
 
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Task } from '@/types/api'
+import { CalendarTooltip } from './CalendarTooltip'
+import { WeekView } from './WeekView'
 
 interface CalendarProps {
   tasks?: Task[]
@@ -21,8 +27,14 @@ interface CalendarProps {
   selectedDate?: Date | null
 }
 
+type ViewMode = 'month' | 'week'
+
 export function Calendar({ tasks = [], onDateClick, selectedDate }: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
+  const [viewMode, setViewMode] = useState<ViewMode>('month')
+  const [hoveredDay, setHoveredDay] = useState<number | null>(null)
+  const [focusedDayIndex, setFocusedDayIndex] = useState<number | null>(null)
+  const calendarRef = useRef<HTMLDivElement>(null)
 
   // Get calendar data
   const { monthName, year, firstDay, daysInMonth, daysInPrevMonth } = useMemo(() => {
@@ -113,6 +125,83 @@ export function Calendar({ tasks = [], onDateClick, selectedDate }: CalendarProp
     onDateClick?.(clickedDate)
   }
 
+  // Check if date is overdue
+  const isOverdue = (day: number) => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const dateToCheck = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      day
+    )
+    dateToCheck.setHours(0, 0, 0, 0)
+    return dateToCheck < today
+  }
+
+  // Check if date is due soon (within 3 days)
+  const isDueSoon = (day: number) => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const dateToCheck = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      day
+    )
+    dateToCheck.setHours(0, 0, 0, 0)
+    const threeDaysFromNow = new Date(today)
+    threeDaysFromNow.setDate(today.getDate() + 3)
+    return dateToCheck >= today && dateToCheck <= threeDaysFromNow
+  }
+
+  // Keyboard navigation (arrow keys)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!calendarRef.current?.contains(document.activeElement)) return
+      if (focusedDayIndex === null) return
+
+      const calendarDaysCount = calendarDays.length
+      let newIndex = focusedDayIndex
+
+      switch (e.key) {
+        case 'ArrowLeft':
+          e.preventDefault()
+          newIndex = focusedDayIndex > 0 ? focusedDayIndex - 1 : focusedDayIndex
+          break
+        case 'ArrowRight':
+          e.preventDefault()
+          newIndex =
+            focusedDayIndex < calendarDaysCount - 1
+              ? focusedDayIndex + 1
+              : focusedDayIndex
+          break
+        case 'ArrowUp':
+          e.preventDefault()
+          newIndex = focusedDayIndex >= 7 ? focusedDayIndex - 7 : focusedDayIndex
+          break
+        case 'ArrowDown':
+          e.preventDefault()
+          newIndex =
+            focusedDayIndex < calendarDaysCount - 7
+              ? focusedDayIndex + 7
+              : focusedDayIndex
+          break
+        case 'Enter':
+        case ' ':
+          e.preventDefault()
+          const day = calendarDays[focusedDayIndex]
+          if (day.isCurrentMonth) {
+            handleDateClick(day.day)
+          }
+          break
+      }
+
+      setFocusedDayIndex(newIndex)
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [focusedDayIndex]) // Removed calendarDays dependency to fix circular reference
+
   // Generate calendar days
   const calendarDays = useMemo(() => {
     const days: Array<{
@@ -154,20 +243,76 @@ export function Calendar({ tasks = [], onDateClick, selectedDate }: CalendarProp
 
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
+  // If week view, render WeekView component
+  if (viewMode === 'week') {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3 }}
+        className="bg-white/8 backdrop-blur-lg border border-purple-400/20 rounded-xl p-4"
+        ref={calendarRef}
+      >
+        {/* View Toggle */}
+        <div className="flex items-center justify-center mb-4">
+          <div className="inline-flex items-center bg-white/5 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode('month')}
+              className="px-3 py-1 text-xs font-medium text-white/60 hover:text-white transition-colors rounded-md"
+            >
+              Month
+            </button>
+            <motion.button
+              layoutId="viewToggle"
+              onClick={() => setViewMode('week')}
+              className="px-3 py-1 text-xs font-medium text-white bg-purple-500/30 rounded-md"
+            >
+              Week
+            </motion.button>
+          </div>
+        </div>
+
+        <WeekView tasks={tasks} onDateClick={onDateClick} selectedDate={selectedDate} />
+      </motion.div>
+    )
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
       className="bg-white/8 backdrop-blur-lg border border-purple-400/20 rounded-xl p-4"
+      ref={calendarRef}
     >
+      {/* View Toggle */}
+      <div className="flex items-center justify-center mb-4">
+        <div className="inline-flex items-center bg-white/5 rounded-lg p-1">
+          <motion.button
+            layoutId="viewToggle"
+            onClick={() => setViewMode('month')}
+            className="px-3 py-1 text-xs font-medium text-white bg-purple-500/30 rounded-md"
+          >
+            Month
+          </motion.button>
+          <button
+            onClick={() => setViewMode('week')}
+            className="px-3 py-1 text-xs font-medium text-white/60 hover:text-white transition-colors rounded-md"
+          >
+            Week
+          </button>
+        </div>
+      </div>
+
       {/* Header with animated navigation */}
       <div className="flex items-center justify-between mb-4">
+        {/* Enhanced Navigation Arrow - 32x32px */}
         <motion.button
-          whileHover={{ scale: 1.1, x: -2 }}
+          whileHover={{ scale: 1.1, x: -3, backgroundColor: 'rgba(255, 255, 255, 0.15)' }}
           whileTap={{ scale: 0.9 }}
           onClick={goToPreviousMonth}
-          className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-white/60 hover:text-white"
+          className="min-w-[32px] min-h-[32px] w-8 h-8 rounded-lg hover:bg-white/10 transition-colors text-white/60 hover:text-white flex items-center justify-center"
+          aria-label="Previous month"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -194,11 +339,13 @@ export function Calendar({ tasks = [], onDateClick, selectedDate }: CalendarProp
           </motion.button>
         </div>
 
+        {/* Enhanced Navigation Arrow - 32x32px */}
         <motion.button
-          whileHover={{ scale: 1.1, x: 2 }}
+          whileHover={{ scale: 1.1, x: 3, backgroundColor: 'rgba(255, 255, 255, 0.15)' }}
           whileTap={{ scale: 0.9 }}
           onClick={goToNextMonth}
-          className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-white/60 hover:text-white"
+          className="min-w-[32px] min-h-[32px] w-8 h-8 rounded-lg hover:bg-white/10 transition-colors text-white/60 hover:text-white flex items-center justify-center"
+          aria-label="Next month"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -226,76 +373,152 @@ export function Calendar({ tasks = [], onDateClick, selectedDate }: CalendarProp
         <AnimatePresence mode="popLayout">
           {calendarDays.map((item, index) => {
             const tasksForDay = item.tasks
-            const highPriorityCount = tasksForDay.filter((t) => t.priority === 'HIGH').length
-            const mediumPriorityCount = tasksForDay.filter((t) => t.priority === 'MEDIUM').length
-            const lowPriorityCount = tasksForDay.filter((t) => t.priority === 'LOW').length
+            const isTodayDate = isToday(item.day) && item.isCurrentMonth
+            const isSelectedDate = isSelected(item.day) && item.isCurrentMonth
+            const hasOverdueTasks = tasksForDay.some(
+              (task) => task.status === 'INCOMPLETE' && isOverdue(item.day)
+            )
+            const hasSoonTasks = tasksForDay.some(
+              (task) => task.status === 'INCOMPLETE' && isDueSoon(item.day)
+            )
+
+            // Get unique priority dots (max 3)
+            const priorityDots: Array<'HIGH' | 'MEDIUM' | 'LOW'> = []
+            if (tasksForDay.some((t) => t.priority === 'HIGH')) priorityDots.push('HIGH')
+            if (tasksForDay.some((t) => t.priority === 'MEDIUM')) priorityDots.push('MEDIUM')
+            if (tasksForDay.some((t) => t.priority === 'LOW')) priorityDots.push('LOW')
+            const hasMoreThanThree = tasksForDay.length > 3
 
             return (
-              <motion.button
+              <motion.div
                 key={`${currentDate.getMonth()}-${index}`}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ delay: index * 0.01, type: 'spring', stiffness: 300 }}
-                whileHover={item.isCurrentMonth ? {
-                  scale: 1.15,
-                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                  transition: { duration: 0.2 }
-                } : {}}
-                whileTap={item.isCurrentMonth ? { scale: 0.95 } : {}}
-                onClick={() => item.isCurrentMonth && handleDateClick(item.day)}
-                disabled={!item.isCurrentMonth}
-                className={`
-                  aspect-square rounded-lg text-xs font-medium
-                  transition-all relative group
-                  ${item.isCurrentMonth ? 'text-white' : 'text-white/20 cursor-default'}
-                  ${isToday(item.day) && item.isCurrentMonth && 'bg-purple-500/40 ring-2 ring-purple-400/50'}
-                  ${isSelected(item.day) && item.isCurrentMonth && 'bg-pink-500/40 ring-2 ring-pink-400/50'}
-                `}
+                className="relative"
+                onMouseEnter={() => item.isCurrentMonth && setHoveredDay(item.day)}
+                onMouseLeave={() => setHoveredDay(null)}
+                onFocus={() => {
+                  setFocusedDayIndex(index)
+                }}
               >
-                <div className="flex flex-col items-center justify-center h-full">
-                  <span>{item.day}</span>
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{
+                    opacity: 1,
+                    scale: isTodayDate ? 1.1 : 1,
+                  }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ delay: index * 0.01, type: 'spring', stiffness: 300 }}
+                  whileHover={
+                    item.isCurrentMonth
+                      ? {
+                          scale: 1.15,
+                          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                          borderRadius: '8px',
+                          transition: { duration: 0.2 },
+                        }
+                      : {}
+                  }
+                  whileTap={item.isCurrentMonth ? { scale: 0.95 } : {}}
+                  onClick={() => item.isCurrentMonth && handleDateClick(item.day)}
+                  disabled={!item.isCurrentMonth}
+                  className={`
+                    aspect-square rounded-lg text-xs font-medium
+                    transition-all relative group w-full
+                    ${item.isCurrentMonth ? 'text-white cursor-pointer' : 'text-white/20 cursor-default'}
+                    ${
+                      isTodayDate &&
+                      'bg-gradient-to-br from-indigo-600/40 to-purple-600/40 ring-2 ring-[length:2px] shadow-[0_0_15px_rgba(99,102,241,0.4)]'
+                    }
+                    ${
+                      isTodayDate
+                        ? 'ring-[image:linear-gradient(135deg,#6366F1,#8B5CF6)]'
+                        : ''
+                    }
+                    ${isSelectedDate && !isTodayDate && 'bg-pink-500/40 ring-2 ring-pink-400/50'}
+                    ${
+                      hasOverdueTasks &&
+                      !isTodayDate &&
+                      !isSelectedDate &&
+                      'bg-red-500/10 border border-red-500/40'
+                    }
+                    ${
+                      hasSoonTasks &&
+                      !hasOverdueTasks &&
+                      !isTodayDate &&
+                      !isSelectedDate &&
+                      'border border-orange-400/30'
+                    }
+                    ${focusedDayIndex === index && 'ring-2 ring-cyan-400/50'}
+                  `}
+                  style={
+                    isTodayDate
+                      ? {
+                          background:
+                            'linear-gradient(135deg, rgba(99, 102, 241, 0.4), rgba(139, 92, 246, 0.4))',
+                          boxShadow: '0 0 15px rgba(99, 102, 241, 0.4)',
+                        }
+                      : {}
+                  }
+                  aria-label={`${item.day} ${monthName} ${year}${
+                    tasksForDay.length > 0 ? `, ${tasksForDay.length} tasks` : ''
+                  }`}
+                  tabIndex={item.isCurrentMonth ? 0 : -1}
+                >
+                  <div className="flex flex-col items-center justify-center h-full">
+                    <span>{item.day}</span>
 
-                  {/* Animated Task Dots */}
-                  {item.isCurrentMonth && tasksForDay.length > 0 && (
+                    {/* Enhanced Task Dots (4px diameter, max 3 + "..." indicator) */}
+                    {item.isCurrentMonth && tasksForDay.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="flex items-center gap-0.5 mt-1"
+                      >
+                        {priorityDots.slice(0, 3).map((priority, dotIndex) => (
+                          <motion.div
+                            key={`${priority}-${dotIndex}`}
+                            whileHover={{ scale: 1.5 }}
+                            className={`w-[4px] h-[4px] rounded-full ${
+                              priority === 'HIGH'
+                                ? 'bg-red-400'
+                                : priority === 'MEDIUM'
+                                ? 'bg-amber-400'
+                                : 'bg-green-400'
+                            }`}
+                          />
+                        ))}
+                        {hasMoreThanThree && (
+                          <span className="text-[8px] text-white/60 ml-0.5">...</span>
+                        )}
+                      </motion.div>
+                    )}
+                  </div>
+
+                  {/* Overdue Pulse Animation */}
+                  {hasOverdueTasks && item.isCurrentMonth && (
                     <motion.div
-                      initial={{ opacity: 0, scale: 0 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="flex gap-0.5 mt-1"
-                    >
-                      {highPriorityCount > 0 && (
-                        <motion.div
-                          whileHover={{ scale: 1.5 }}
-                          className="w-1 h-1 rounded-full bg-red-400"
-                        />
-                      )}
-                      {mediumPriorityCount > 0 && (
-                        <motion.div
-                          whileHover={{ scale: 1.5 }}
-                          className="w-1 h-1 rounded-full bg-yellow-400"
-                        />
-                      )}
-                      {lowPriorityCount > 0 && (
-                        <motion.div
-                          whileHover={{ scale: 1.5 }}
-                          className="w-1 h-1 rounded-full bg-green-400"
-                        />
-                      )}
-                    </motion.div>
+                      className="absolute inset-0 rounded-lg border-2 border-red-500/60 pointer-events-none"
+                      animate={{
+                        opacity: [0.5, 1, 0.5],
+                        scale: [1, 1.05, 1],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                      }}
+                    />
                   )}
-                </div>
+                </motion.button>
 
-                {/* Tooltip on hover */}
-                {item.isCurrentMonth && tasksForDay.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 5 }}
-                    whileHover={{ opacity: 1, y: 0 }}
-                    className="absolute -top-8 left-1/2 -translate-x-1/2 bg-purple-900/95 text-white text-xs px-2 py-1 rounded whitespace-nowrap pointer-events-none z-10 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    {tasksForDay.length} task{tasksForDay.length > 1 ? 's' : ''}
-                  </motion.div>
+                {/* Enhanced Tooltip with Task Preview */}
+                {item.isCurrentMonth && hoveredDay === item.day && (
+                  <CalendarTooltip
+                    tasks={tasksForDay}
+                    isVisible={hoveredDay === item.day}
+                    position="top"
+                  />
                 )}
-              </motion.button>
+              </motion.div>
             )
           })}
         </AnimatePresence>
