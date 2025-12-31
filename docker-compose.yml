@@ -1,27 +1,155 @@
-version: "3.8"
+# =============================================================================
+# Docker Compose - Phase 3 AI Chatbot with MCP Architecture
+# =============================================================================
+# Usage:
+#   Development: docker-compose up
+#   Production:  docker-compose -f docker-compose.prod.yml up -d
+#   Stop:        docker-compose down
+#   Rebuild:     docker-compose up --build
+# =============================================================================
 
+version: '3.8'
+
+# =============================================================================
+# Services
+# =============================================================================
 services:
+  # ---------------------------------------------------------------------------
+  # Backend Service (FastAPI + MCP Server)
+  # ---------------------------------------------------------------------------
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: todo-backend
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
-    volumes:
-      - ./backend:/app
-    command: uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
+      # DATABASE_URL loaded from backend/.env (Neon PostgreSQL)
+      # API server configuration
+      - HOST=0.0.0.0
+      - PORT=8000
+      # CORS allowed origins (comma-separated for multiple frontends)
+      - FRONTEND_URL=http://localhost:3000,http://localhost:3001
+      # Debug mode (show detailed errors)
+      - DEBUG=True
+    env_file:
+      - ./backend/.env
+    # volumes:
+      # Mount source code for hot reload (development only)
+      # - ./backend:/app
+      # Exclude node_modules and __pycache__
+      # - /app/__pycache__
+      # - /app/.pytest_cache
+    # Using Neon cloud database (no local database dependency)
+    networks:
+      - todo-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
-  frontend:
-    build: ./frontend
+  # ---------------------------------------------------------------------------
+  # Frontend Web Service (Next.js - Phase 2 Web App)
+  # ---------------------------------------------------------------------------
+  frontend-web:
+    build:
+      context: ./frontend-web
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:8000
+    container_name: todo-frontend-web
     ports:
       - "3000:3000"
     environment:
-      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
-      - NEXT_PUBLIC_API_URL=http://backend:8000
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    command: npm run dev
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - API_URL=http://backend:8000
+      - PORT=3000
     depends_on:
       - backend
+    networks:
+      - todo-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ---------------------------------------------------------------------------
+  # Frontend Chatbot Service (Next.js + OpenAI ChatKit)
+  # ---------------------------------------------------------------------------
+  frontend-chatbot:
+    build:
+      context: ./frontend-chatbot
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:8000
+    container_name: todo-frontend-chatbot
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - PORT=3001
+    depends_on:
+      - backend
+    networks:
+      - todo-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL Database Service - DISABLED (Using Neon Cloud Database)
+  # ---------------------------------------------------------------------------
+  # database:
+  #   image: postgres:15-alpine
+  #   container_name: todo-database
+  #   ports:
+  #     - "5432:5432"
+  #   environment:
+  #     - POSTGRES_DB=todo_db
+  #     - POSTGRES_USER=todo_user
+  #     - POSTGRES_PASSWORD=todo_password
+  #     - PGDATA=/var/lib/postgresql/data/pgdata
+  #   volumes:
+  #     # Persist database data (named volume)
+  #     - postgres_data:/var/lib/postgresql/data
+  #     # Optional: Initialize database with schema
+  #     # - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+  #   networks:
+  #     - todo-network
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U todo_user -d todo_db"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 30s
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  todo-network:
+    driver: bridge
+    name: todo-network
+
+# =============================================================================
+# Volumes
+# =============================================================================
+# DISABLED: No local database volume needed (using Neon cloud database)
+# volumes:
+#   postgres_data:
+#     driver: local
+#     name: todo-postgres-data

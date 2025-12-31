@@ -1,0 +1,83 @@
+# =============================================================================
+# .dockerignore - Exclude files from Docker build context
+# =============================================================================
+# Purpose: Reduce build time and image size for Next.js frontend
+# =============================================================================
+
+# Dependencies (will be installed fresh in container)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Next.js build output (rebuilt in container)
+.next/
+out/
+build/
+
+# Environment variables (use docker-compose env)
+.env
+.env.*
+!.env.local.example
+
+# Testing
+coverage/
+.nyc_output/
+__tests__/
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Documentation
+*.md
+!README.md
+docs/
+
+# TypeScript cache
+*.tsbuildinfo
+.tsbuildinfo
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.bak
+*.orig
+tmp/
+temp/
+
+# Development files
+.prettierrc
+.prettierignore
+.eslintrc.json
+.eslintignore
+jest.config.js
+# tsconfig.json - KEEP THIS! Required for path aliases (@/types)
+
+# Docker files (don't need Dockerfile inside container)
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Misc
+.editorconfig

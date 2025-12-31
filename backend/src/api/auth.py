@@ -64,7 +64,7 @@ async def get_current_user(authorization: str = Header(None)) -> str:
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid token payload: missing user_id")
 
-        return user_id
+        return user_id  # type: ignore[no-any-return]
 
     except jwt.ExpiredSignatureError:
         # Token has expired

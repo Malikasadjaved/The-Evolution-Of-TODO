@@ -70,7 +70,7 @@ cp .env.example .env
 ```
 
 **Required Variables**:
-- `BETTER_AUTH_SECRET`: ✅ Already generated (EWNhWQFikqssCNiZtGZrUVK32lnGWoobrM9ttp8ezE8)
+- `BETTER_AUTH_SECRET`: 🔴 Generate with `python -c "import secrets; print(secrets.token_urlsafe(32))"`
 - `DATABASE_URL`: 🔴 Replace with your Neon PostgreSQL connection string
 - `FRONTEND_URL`: Default `http://localhost:3000`
 
@@ -222,7 +222,8 @@ pip freeze > requirements.txt
 ## Troubleshooting
 
 ### `BETTER_AUTH_SECRET must be at least 32 characters`
-✅ **Fixed**: Secret is already 43 characters (EWNhWQFikqssCNiZtGZrUVK32lnGWoobrM9ttp8ezE8)
+✅ **Fix**: Generate a new secret with `python -c "import secrets; print(secrets.token_urlsafe(32))"`
+The generated secret will be 43 characters (meets the 32-character minimum requirement)
 
 ### `could not connect to server: Connection refused` (PostgreSQL)
 🔴 **Action Required**: Update `DATABASE_URL` in `.env` with your Neon connection string

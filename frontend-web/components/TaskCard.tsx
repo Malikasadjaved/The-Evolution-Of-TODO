@@ -4,7 +4,7 @@
  * Features:
  * - Glassmorphic design with purple glow
  * - Priority badge (HIGH/MEDIUM/LOW)
- * - Status badge (INCOMPLETE/IN_PROGRESS/COMPLETE)
+ * - Status badge (INCOMPLETE/COMPLETE)
  * - Due date with overdue indicator
  * - Hover effect: -translate-y-1 with purple shadow
  * - Click to open task detail modal
@@ -306,20 +306,10 @@ export function TaskCard({ task, onClick, onDelete, onToggleStatus }: TaskCardPr
 
         {/* Status Badge */}
         <Badge
-          variant={
-            task.status === 'COMPLETE'
-              ? 'low'
-              : task.status === 'IN_PROGRESS'
-                ? 'medium'
-                : 'info'
-          }
+          variant={task.status === 'COMPLETE' ? 'low' : 'info'}
           size="sm"
         >
-          {task.status === 'COMPLETE'
-            ? '✓ Done'
-            : task.status === 'IN_PROGRESS'
-              ? 'In Progress'
-              : 'To Do'}
+          {task.status === 'COMPLETE' ? '✓ Done' : 'To Do'}
         </Badge>
       </div>
 

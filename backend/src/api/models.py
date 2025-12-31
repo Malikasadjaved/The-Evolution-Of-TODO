@@ -47,7 +47,7 @@ class TaskRecurrence(str, Enum):
 # ============================================================================
 
 
-class User(SQLModel, table=True):
+class User(SQLModel, table=True):  # type: ignore[call-arg]
     """
     User account entity.
     Created by Better Auth during signup/signin.
@@ -58,15 +58,19 @@ class User(SQLModel, table=True):
     id: str = Field(primary_key=True)  # UUID from Better Auth
     email: str = Field(unique=True, index=True, max_length=255)
     name: str = Field(max_length=255)
-    password_hash: Optional[str] = Field(default=None, max_length=255)  # Hashed password (optional, for backend auth)
+    password_hash: Optional[str] = Field(
+        default=None, max_length=255
+    )  # Hashed password (optional, for backend auth)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     # Relationships
     tasks: List["Task"] = Relationship(back_populates="user")
     tags: List["Tag"] = Relationship(back_populates="user")
+    conversations: List["Conversation"] = Relationship(back_populates="user")
+    messages: List["Message"] = Relationship(back_populates="user")
 
 
-class Task(SQLModel, table=True):
+class Task(SQLModel, table=True):  # type: ignore[call-arg]
     """
     Todo task entity with three-tier features.
     CRITICAL: Always filter by user_id for user isolation.
@@ -105,7 +109,7 @@ class Task(SQLModel, table=True):
     )
 
 
-class Tag(SQLModel, table=True):
+class Tag(SQLModel, table=True):  # type: ignore[call-arg]
     """
     Custom task tag/category.
     CRITICAL: Tags are user-scoped (user isolation).
@@ -130,7 +134,7 @@ class Tag(SQLModel, table=True):
     )
 
 
-class TaskTag(SQLModel, table=True):
+class TaskTag(SQLModel, table=True):  # type: ignore[call-arg]
     """
     Join table for many-to-many Task ↔ Tag relationship.
     """
@@ -144,3 +148,74 @@ class TaskTag(SQLModel, table=True):
     # Relationships
     task: Optional["Task"] = Relationship(back_populates="task_tags")
     tag: Optional["Tag"] = Relationship(back_populates="task_tags")
+
+
+# ============================================================================
+# Phase 3: Conversation Models
+# ============================================================================
+
+
+class MessageRole(str, Enum):
+    """Message role in conversation (user or assistant)."""
+
+    USER = "user"
+    ASSISTANT = "assistant"
+
+
+class Conversation(SQLModel, table=True):  # type: ignore[call-arg]
+    """
+    Conversation entity for Phase 3 AI Chatbot.
+
+    Stores conversation metadata. Messages are stored in separate table.
+    Constitution: .specify/memory/phase-3-constitution.md (v1.1.0)
+    Section III: Database Schema
+    """
+
+    __tablename__ = "conversations"
+
+    # Primary Key
+    id: Optional[int] = Field(default=None, primary_key=True)
+
+    # Foreign Key (CRITICAL: User isolation)
+    user_id: str = Field(foreign_key="users.id", index=True)
+
+    # Metadata
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # Relationships
+    user: Optional["User"] = Relationship(back_populates="conversations")
+    messages: List["Message"] = Relationship(
+        back_populates="conversation",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
+
+
+class Message(SQLModel, table=True):  # type: ignore[call-arg]
+    """
+    Message entity for Phase 3 AI Chatbot.
+
+    Stores individual messages in a conversation (user or assistant).
+    Constitution: .specify/memory/phase-3-constitution.md (v1.1.0)
+    Section III: Database Schema
+    """
+
+    __tablename__ = "messages"
+
+    # Primary Key
+    id: Optional[int] = Field(default=None, primary_key=True)
+
+    # Foreign Keys
+    conversation_id: int = Field(foreign_key="conversations.id", index=True)
+    user_id: str = Field(foreign_key="users.id", index=True)
+
+    # Message Data
+    role: MessageRole = Field(sa_column_kwargs={"nullable": False})
+    content: str = Field(max_length=10000)
+
+    # Metadata
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # Relationships
+    conversation: Optional["Conversation"] = Relationship(back_populates="messages")
+    user: Optional["User"] = Relationship(back_populates="messages")

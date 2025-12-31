@@ -75,8 +75,8 @@ async function handleAuthRequest(request: NextRequest): Promise<NextResponse> {
     const url = new URL(request.url)
     const path = url.pathname.replace('/api/auth', '') // Remove /api/auth prefix
 
-    // Build backend URL
-    const backendUrl = `${env.NEXT_PUBLIC_API_URL}/api/auth${path}`
+    // Build backend URL (use API_URL for server-to-server communication within Docker)
+    const backendUrl = `${env.API_URL}/api/auth${path}`
 
     console.log(`[Auth Proxy] ${request.method} ${path} → ${backendUrl}`)
 

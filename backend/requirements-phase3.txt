@@ -1,0 +1,48 @@
+# Phase 3: AI Chatbot with MCP Architecture - Additional Dependencies
+#
+# This file extends the base requirements.txt with Phase 3-specific packages.
+# Install both: pip install -r requirements.txt -r requirements-phase3.txt
+#
+# Constitution: .specify/memory/phase-3-constitution.md (v1.1.0)
+# Spec: specs/002-ai-chatbot-mcp/spec.md
+
+# ===========================
+# OpenAI Agents SDK
+# ===========================
+openai>=1.40.0  # OpenAI Agents API with function calling and MCP integration
+tiktoken>=0.7.0  # Token counting for conversation context management (MAX_CONTEXT_TOKENS=8000)
+
+# ===========================
+# Model Context Protocol (MCP)
+# ===========================
+# Note: MCP SDK may not be available as a PyPI package yet
+# If using custom MCP implementation, add path or Git URL here
+# Example: mcp-sdk @ git+https://github.com/anthropics/mcp-python-sdk.git
+#
+# For now, we'll implement MCP tools as plain functions following the protocol spec
+# No external MCP SDK dependency required (tools register directly with OpenAI Agents)
+
+# ===========================
+# Database (Shared with Phase 2)
+# ===========================
+# Already in requirements.txt:
+# - sqlmodel>=0.0.16
+# - psycopg[binary]>=3.2.0
+
+# ===========================
+# Testing (Additional for Phase 3)
+# ===========================
+pytest-cov>=4.1.0  # Code coverage reporting (≥85% target per constitution)
+pytest-mock>=3.12.0  # Mocking for OpenAI API calls in unit tests
+responses>=0.24.0  # Mock HTTP responses for integration tests
+
+# ===========================
+# Observability & Cloud-Native
+# ===========================
+python-json-logger>=2.0.7  # JSON structured logging for cloud platforms
+# Circuit breaker pattern (custom implementation in utils/circuit_breaker.py)
+
+# ===========================
+# Development & Debugging
+# ===========================
+ipdb>=0.13.13  # Enhanced debugger for development

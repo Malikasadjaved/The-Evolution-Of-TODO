@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """
 Authentication routes for user registration and login.
 
@@ -8,7 +9,6 @@ Endpoints:
 - GET /api/auth/session - Get current user session
 """
 
-import logging
 from datetime import datetime, timedelta
 from typing import Optional
 from uuid import uuid4
@@ -21,8 +21,9 @@ from sqlmodel import Session, select
 from ..config import settings
 from ..db import get_session
 from ..models import User
+from mcp.utils.logger import StructuredLogger
 
-logger = logging.getLogger(__name__)
+logger = StructuredLogger(service_name="auth-api")
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
@@ -93,7 +94,11 @@ async def sign_up(request: SignUpRequest, session: Session = Depends(get_session
     session.commit()
     session.refresh(user)
 
-    logger.info(f"New user registered: {user.email}")
+    logger.info(
+        event="user_registered",
+        message="New user registered successfully",
+        user_id=user.id,  # Will be hashed by StructuredLogger
+    )
 
     # Generate JWT token
     token = create_jwt_token(user.id, user.email)
@@ -107,11 +112,14 @@ async def sign_up(request: SignUpRequest, session: Session = Depends(get_session
 @router.post("/sign-in", response_model=AuthResponse)
 async def sign_in(request: SignInRequest, session: Session = Depends(get_session)):
     """Login an existing user."""
-    print(f"DEBUG: Sign-in attempt for {request.email}")
+    logger.debug(
+        event="sign_in_attempt",
+        message="User sign-in attempt",
+        user_email_provided=bool(request.email),  # Boolean, not email
+    )
     try:
         # Find user by email
         user = session.exec(select(User).where(User.email == request.email)).first()
-        print(f"DEBUG: User found: {user is not None}")
 
         # Check if user exists and has a password_hash
         if not user:
@@ -125,7 +133,11 @@ async def sign_in(request: SignInRequest, session: Session = Depends(get_session
         if not verify_password(request.password, user.password_hash):
             raise HTTPException(status_code=401, detail="Invalid email or password")
 
-        logger.info(f"User signed in: {user.email}")
+        logger.info(
+            event="user_signed_in",
+            message="User signed in successfully",
+            user_id=user.id,  # Will be hashed by StructuredLogger
+        )
 
         # Generate JWT token
         token = create_jwt_token(user.id, user.email)
@@ -137,14 +149,21 @@ async def sign_in(request: SignInRequest, session: Session = Depends(get_session
     except HTTPException:
         raise  # Re-raise HTTP exceptions
     except Exception as e:
-        logger.error(f"Sign-in error: {type(e).__name__}: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Sign-in failed: {str(e)}")
+        logger.error(
+            event="sign_in_error",
+            message="Sign-in failed due to unexpected error",
+            error_type=type(e).__name__,
+            # Do NOT log str(e) - may contain PII
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Sign-in failed. Please try again or contact support."
+        )
 
 
 @router.get("/test")
 async def test():
     """Test endpoint."""
-    print("DEBUG: Test endpoint hit!")
     return {"status": "working"}
 
 

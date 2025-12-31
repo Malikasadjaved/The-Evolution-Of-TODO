@@ -18,15 +18,18 @@ class Settings(BaseSettings):
     # Database
     database_url: str
 
-    # API Server
-    host: str = "0.0.0.0"
-    port: int = 8000
+    # API Server (Phase 3 T022: Kubernetes-ready)
+    host: str = "0.0.0.0"  # Bind to all interfaces (not 127.0.0.1)
+    port: int = 8000  # Can be overridden via PORT env variable
 
-    # CORS
-    frontend_url: str = "http://localhost:3000"
+    # CORS (comma-separated list for multiple frontends)
+    frontend_url: str = "http://localhost:3000,http://localhost:3001"
 
     # Debug mode (show detailed errors in responses)
     debug: bool = True  # Temporarily True for debugging
+
+    # Phase 3: OpenAI API key for Agents SDK
+    openai_api_key: str = ""  # Optional for tests, required for production
 
     @field_validator("better_auth_secret")
     @classmethod
@@ -59,4 +62,4 @@ class Settings(BaseSettings):
 
 
 # Initialize settings (validates on import)
-settings = Settings()
+settings = Settings()  # type: ignore[call-arg]

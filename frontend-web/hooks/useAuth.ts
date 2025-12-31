@@ -210,8 +210,8 @@ export const useAuth = () => {
     onSuccess: data => {
       // Update session cache
       queryClient.setQueryData(['session'], data.user)
-      // Redirect to dashboard
-      router.push('/dashboard')
+      // Don't auto-redirect - let the calling component handle redirects
+      // This allows login page to implement custom redirect logic (e.g., redirect to chatbot)
     },
   })
 
@@ -221,7 +221,7 @@ export const useAuth = () => {
     onSuccess: data => {
       // Update session cache
       queryClient.setQueryData(['session'], data.user)
-      // Redirect to dashboard
+      // Redirect to dashboard (signup always goes to dashboard)
       router.push('/dashboard')
     },
   })

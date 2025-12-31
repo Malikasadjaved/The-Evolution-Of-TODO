@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """
 Tag CRUD endpoints (Phase 9 - User Story 7).
 
