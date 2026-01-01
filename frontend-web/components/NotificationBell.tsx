@@ -150,10 +150,10 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
           min-h-[44px] min-w-[44px]
           flex items-center justify-center
         `}
-        animate={shouldShake ? { rotate: [0, -15, 15, -15, 15, 0] } : {}}
-        transition={{ duration: 0.5 }}
-        whileHover={ANIMATION_PRESETS.hoverScale}
-        whileTap={ANIMATION_PRESETS.tapScale}
+        animate={shouldShake ? { rotate: [0, -10, 10, -10, 10, 0] } : { rotate: 0 }}
+        transition={{ duration: 0.4, ease: "easeInOut" }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
         aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
         aria-expanded={isOpen}
         aria-haspopup="true"
