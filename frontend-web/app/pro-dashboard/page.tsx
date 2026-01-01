@@ -45,6 +45,10 @@ const ProDashboard = () => {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'today' | 'upcoming' | 'complete'>('all')
+  const [selectedPriorityFilter, setSelectedPriorityFilter] = useState<'HIGH' | 'MEDIUM' | 'LOW' | 'all'>('all')
+  const [selectedTagFilter, setSelectedTagFilter] = useState<string>('all')
+  const [sortField, setSortField] = useState<'due_date' | 'priority' | 'title'>('due_date')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showTaskDrawer, setShowTaskDrawer] = useState(false)
@@ -53,11 +57,18 @@ const ProDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(true)
-  const [newTask, setNewTask] = useState<CreateTaskInput>({
+  const [newTask, setNewTask] = useState<{
+    title: string
+    description: string
+    priority: 'LOW' | 'MEDIUM' | 'HIGH'
+    due_date: string
+    tags: string[]
+  }>({
     title: '',
     description: '',
     priority: 'MEDIUM',
     due_date: '',
+    tags: [],
   })
 
   // Track if we've already fetched to prevent double calls in Strict Mode
@@ -72,15 +83,24 @@ const ProDashboard = () => {
     }
   }, [])
 
-  // Close user menu when clicking outside
+  // Close user menu and filter menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setUserMenuOpen(false)
       }
+
+      // Close filter menu when clicking outside
+      const filterMenu = document.getElementById('advanced-filter-menu')
+      if (filterMenu && !filterMenu.contains(event.target as Node)) {
+        filterMenu.classList.add('hidden')
+      }
     }
 
     if (userMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    } else {
+      // Always check filter menu clicks
       document.addEventListener('mousedown', handleClickOutside)
     }
 
@@ -121,7 +141,7 @@ const ProDashboard = () => {
     const now = new Date()
     const today = now.toISOString().split('T')[0]
 
-    return tasks.filter((task) => {
+    const filtered = tasks.filter((task) => {
       const matchesSearch =
         task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -143,9 +163,34 @@ const ProDashboard = () => {
           break
       }
 
-      return matchesSearch && matchesFilter
+      // Priority filter
+      const matchesPriority = selectedPriorityFilter === 'all' || task.priority === selectedPriorityFilter
+
+      // Tag filter (if task has tags and filter is active)
+      const matchesTag = selectedTagFilter === 'all' ||
+        (task.tags && task.tags.includes(selectedTagFilter))
+
+      return matchesSearch && matchesFilter && matchesPriority && matchesTag
     })
-  }, [tasks, searchQuery, selectedFilter])
+
+    // Apply sorting
+    return filtered.sort((a, b) => {
+      let comparison = 0
+
+      if (sortField === 'due_date') {
+        if (!a.due_date) return 1
+        if (!b.due_date) return -1
+        comparison = new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+      } else if (sortField === 'priority') {
+        const priorityOrder = { HIGH: 3, MEDIUM: 2, LOW: 1 }
+        comparison = priorityOrder[a.priority] - priorityOrder[b.priority]
+      } else if (sortField === 'title') {
+        comparison = a.title.localeCompare(b.title)
+      }
+
+      return sortOrder === 'asc' ? comparison : -comparison
+    })
+  }, [tasks, searchQuery, selectedFilter, selectedPriorityFilter, selectedTagFilter, sortField, sortOrder])
 
   const stats = useMemo(() => {
     const now = new Date()
@@ -205,6 +250,7 @@ const ProDashboard = () => {
         description: '',
         priority: 'MEDIUM',
         due_date: '',
+        tags: [],
       })
       setShowAddModal(false)
       // Add to local state immediately for better UX
@@ -474,6 +520,44 @@ const ProDashboard = () => {
                   className={`w-full px-4 py-3 ${themeClasses.inputBg} border ${themeClasses.inputBorder} rounded-lg ${themeClasses.inputFocus} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all ${themeClasses.inputText}`}
                 />
               </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${themeClasses.textPrimary}`}>Tags</label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {task.tags?.map((tag, idx) => (
+                    <span
+                      key={idx}
+                      className={`px-3 py-1 bg-purple-500/20 ${themeClasses.textPrimary} text-xs rounded-full border border-purple-500/30 flex items-center gap-1`}
+                    >
+                      {tag}
+                      <button
+                        onClick={() => {
+                          const newTags = task.tags?.filter((_, i) => i !== idx) || []
+                          setEditedTask({ ...editedTask, tags: newTags })
+                        }}
+                        className="hover:text-red-400 transition-colors"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  placeholder="Add tag and press Enter"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                      const newTag = e.currentTarget.value.trim()
+                      const currentTags = task.tags || []
+                      if (!currentTags.includes(newTag)) {
+                        setEditedTask({ ...editedTask, tags: [...currentTags, newTag] })
+                      }
+                      e.currentTarget.value = ''
+                    }
+                  }}
+                  className={`w-full px-4 py-3 ${themeClasses.inputBg} border ${themeClasses.inputBorder} rounded-lg ${themeClasses.inputFocus} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all ${themeClasses.inputText}`}
+                />
+              </div>
             </div>
           </div>
 
@@ -546,6 +630,7 @@ const ProDashboard = () => {
           description: '',
           priority: 'MEDIUM',
           due_date: today,
+          tags: [],
         })
         setShowAddModal(true)
       } else if (actionType === 'high-priority') {
@@ -554,6 +639,7 @@ const ProDashboard = () => {
           description: '',
           priority: 'HIGH',
           due_date: '',
+          tags: [],
         })
         setShowAddModal(true)
       }
@@ -753,6 +839,114 @@ const ProDashboard = () => {
           </button>
         </nav>
 
+        {/* Priority Filters */}
+        <div className={`px-4 pb-2 border-b ${themeClasses.divider}`}>
+          <h3 className={`text-xs font-semibold ${themeClasses.textSecondary} mb-3 uppercase`}>Priority</h3>
+          <div className="space-y-1">
+            <button
+              onClick={() => setSelectedPriorityFilter('HIGH')}
+              className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg transition-all ${
+                selectedPriorityFilter === 'HIGH'
+                  ? 'bg-red-500/10 text-red-400 border border-red-500/30'
+                  : `${themeClasses.cardHover} ${themeClasses.textPrimary}`
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${selectedPriorityFilter === 'HIGH' ? 'bg-red-400' : 'bg-slate-500'}`} />
+                <span className="text-sm font-medium">High</span>
+              </div>
+              <span className={`text-xs ${themeClasses.textSecondary}`}>{tasks.filter(t => t.priority === 'HIGH').length}</span>
+            </button>
+            <button
+              onClick={() => setSelectedPriorityFilter('MEDIUM')}
+              className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg transition-all ${
+                selectedPriorityFilter === 'MEDIUM'
+                  ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                  : `${themeClasses.cardHover} ${themeClasses.textPrimary}`
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${selectedPriorityFilter === 'MEDIUM' ? 'bg-amber-400' : 'bg-slate-500'}`} />
+                <span className="text-sm font-medium">Medium</span>
+              </div>
+              <span className={`text-xs ${themeClasses.textSecondary}`}>{tasks.filter(t => t.priority === 'MEDIUM').length}</span>
+            </button>
+            <button
+              onClick={() => setSelectedPriorityFilter('LOW')}
+              className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg transition-all ${
+                selectedPriorityFilter === 'LOW'
+                  ? 'bg-green-500/10 text-green-400 border border-green-500/30'
+                  : `${themeClasses.cardHover} ${themeClasses.textPrimary}`
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${selectedPriorityFilter === 'LOW' ? 'bg-green-400' : 'bg-slate-500'}`} />
+                <span className="text-sm font-medium">Low</span>
+              </div>
+              <span className={`text-xs ${themeClasses.textSecondary}`}>{tasks.filter(t => t.priority === 'LOW').length}</span>
+            </button>
+            <button
+              onClick={() => setSelectedPriorityFilter('all')}
+              className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg transition-all ${
+                selectedPriorityFilter === 'all'
+                  ? 'bg-purple-500/10 text-purple-400 border border-purple-500/30'
+                  : `${themeClasses.cardHover} ${themeClasses.textPrimary}`
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-purple-400" />
+                <span className="text-sm font-medium">All Priorities</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* Tag Filters */}
+        {(() => {
+          const allTags = Array.from(new Set(tasks.flatMap(task => task.tags || [])))
+          if (allTags.length === 0) return null
+
+          return (
+            <div className={`px-4 pb-2 border-b ${themeClasses.divider}`}>
+              <h3 className={`text-xs font-semibold ${themeClasses.textSecondary} mb-3 uppercase`}>Tags</h3>
+              <div className="space-y-1">
+                <button
+                  onClick={() => setSelectedTagFilter('all')}
+                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg transition-all ${
+                    selectedTagFilter === 'all'
+                      ? 'bg-purple-500/10 text-purple-400 border border-purple-500/30'
+                      : `${themeClasses.cardHover} ${themeClasses.textPrimary}`
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">All Tags</span>
+                  </div>
+                </button>
+                {allTags.map(tag => (
+                  <button
+                    key={tag}
+                    onClick={() => setSelectedTagFilter(tag)}
+                    className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg transition-all ${
+                      selectedTagFilter === tag
+                        ? 'bg-purple-500/10 text-purple-400 border border-purple-500/30'
+                        : `${themeClasses.cardHover} ${themeClasses.textPrimary}`
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded-full"
+                      >
+                        {tag}
+                      </span>
+                    </div>
+                    <span className={`text-xs ${themeClasses.textSecondary}`}>{tasks.filter(t => t.tags?.includes(tag)).length}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )
+        })()}
+
         <div className={`p-4 border-t ${themeClasses.divider}`}>
           <div className="p-4 rounded-lg bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20">
             <p className={`text-sm font-semibold mb-2 ${themeClasses.textPrimary}`}>Progress Today</p>
@@ -836,9 +1030,70 @@ const ProDashboard = () => {
               </button>
             </div>
 
-            <button className={`p-3 ${themeClasses.buttonSecondary} border ${themeClasses.cardBorder} rounded-lg transition-all ${themeClasses.textPrimary}`}>
-              <Filter className="w-5 h-5" />
+            {/* Sort Field Dropdown */}
+            <div className="relative">
+              <select
+                value={sortField}
+                onChange={(e) => setSortField(e.target.value as 'due_date' | 'priority' | 'title')}
+                className={`${themeClasses.buttonSecondary} border ${themeClasses.cardBorder} rounded-lg px-4 py-3 ${themeClasses.textPrimary} transition-all focus:outline-none focus:border-purple-500 cursor-pointer`}
+              >
+                <option value="due_date" className="bg-gray-900">Sort by Due Date</option>
+                <option value="priority" className="bg-gray-900">Sort by Priority</option>
+                <option value="title" className="bg-gray-900">Sort by Title</option>
+              </select>
+            </div>
+
+            {/* Sort Order Toggle */}
+            <button
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              className={`p-3 ${themeClasses.buttonSecondary} border ${themeClasses.cardBorder} rounded-lg transition-all ${themeClasses.textPrimary}`}
+              title={`Sort ${sortOrder === 'asc' ? 'Descending' : 'Ascending'}`}
+            >
+              {sortOrder === 'asc' ? <TrendingUp className="w-5 h-5" /> : <TrendingUp className="w-5 h-5 rotate-180" />}
             </button>
+
+            {/* Advanced Filters Button */}
+            <div className="relative">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  const filterMenu = document.getElementById('advanced-filter-menu')
+                  filterMenu?.classList.toggle('hidden')
+                }}
+                className={`p-3 ${themeClasses.buttonSecondary} border ${themeClasses.cardBorder} rounded-lg transition-all ${themeClasses.textPrimary}`}
+              >
+                <Filter className="w-5 h-5" />
+              </button>
+              <div
+                id="advanced-filter-menu"
+                className="hidden absolute right-0 top-full mt-2 z-50 w-64"
+              >
+                <div className={`${themeClasses.dropdownBg} border ${themeClasses.border} rounded-lg ${themeClasses.shadow} overflow-hidden`}>
+                  <div className="p-2">
+                    <button
+                      onClick={() => { setSelectedPriorityFilter('all'); document.getElementById('advanced-filter-menu')?.classList.add('hidden') }}
+                      className={`w-full px-3 py-2 rounded-lg ${themeClasses.dropdownHover} text-left text-sm ${themeClasses.textPrimary}`}
+                    >
+                      Clear Priority Filter
+                    </button>
+                    <button
+                      onClick={() => { setSelectedTagFilter('all'); document.getElementById('advanced-filter-menu')?.classList.add('hidden') }}
+                      className={`w-full px-3 py-2 rounded-lg ${themeClasses.dropdownHover} text-left text-sm ${themeClasses.textPrimary}`}
+                    >
+                      Clear Tag Filter
+                    </button>
+                    {(selectedPriorityFilter !== 'all' || selectedTagFilter !== 'all') && (
+                      <button
+                        onClick={() => { setSelectedPriorityFilter('all'); setSelectedTagFilter('all'); document.getElementById('advanced-filter-menu')?.classList.add('hidden') }}
+                        className={`w-full px-3 py-2 rounded-lg hover:bg-purple-500/10 text-left text-sm text-purple-400 font-medium`}
+                      >
+                        Clear All Filters
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
 
             <button
               onClick={() => setShowAddModal(true)}
@@ -941,6 +1196,18 @@ const ProDashboard = () => {
                       <p className={`text-sm ${themeClasses.textSecondary} truncate`}>
                         {task.description || 'No description'}
                       </p>
+                      {task.tags && task.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {task.tags.map((tag, idx) => (
+                            <span
+                              key={idx}
+                              className="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded-full border border-purple-500/30"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     <span
@@ -1020,6 +1287,19 @@ const ProDashboard = () => {
                   <p className={`text-sm ${themeClasses.textSecondary} mb-4 line-clamp-2`}>
                     {task.description || 'No description'}
                   </p>
+
+                  {task.tags && task.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {task.tags.map((tag, idx) => (
+                        <span
+                          key={idx}
+                          className="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded-full border border-purple-500/30"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
                   <div className="flex flex-col gap-2 mb-4">
                     <OverdueBadge dueDate={task.due_date} />
@@ -1115,6 +1395,43 @@ const ProDashboard = () => {
                   />
                 </div>
               </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${themeClasses.textPrimary}`}>Tags</label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {newTask.tags.map((tag, idx) => (
+                    <span
+                      key={idx}
+                      className={`px-3 py-1 bg-purple-500/20 ${themeClasses.textPrimary} text-xs rounded-full border border-purple-500/30 flex items-center gap-1`}
+                    >
+                      {tag}
+                      <button
+                        onClick={() => {
+                          const newTags = newTask.tags.filter((_, i) => i !== idx)
+                          setNewTask({ ...newTask, tags: newTags })
+                        }}
+                        className="hover:text-red-400 transition-colors"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  placeholder="Add tag and press Enter"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                      const newTag = e.currentTarget.value.trim()
+                      if (!newTask.tags.includes(newTag)) {
+                        setNewTask({ ...newTask, tags: [...newTask.tags, newTag] })
+                      }
+                      e.currentTarget.value = ''
+                    }
+                  }}
+                  className={`w-full px-4 py-3 ${themeClasses.inputBg} border ${themeClasses.inputBorder} rounded-lg ${themeClasses.inputFocus} focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-all ${themeClasses.inputText}`}
+                />
+              </div>
             </div>
 
             <div className={`flex items-center gap-3 p-6 border-t ${themeClasses.divider}`}>
@@ -1198,6 +1515,22 @@ const ProDashboard = () => {
                   {formatDueDate(selectedTask.due_date)}
                 </div>
               </div>
+
+              {selectedTask.tags && selectedTask.tags.length > 0 && (
+                <div>
+                  <h4 className={`text-sm font-semibold ${themeClasses.textSecondary} mb-2`}>Tags</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedTask.tags.map((tag, idx) => (
+                      <span
+                        key={idx}
+                        className="px-3 py-1 bg-purple-500/20 text-purple-400 text-xs rounded-full border border-purple-500/30"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div>
                 <h4 className={`text-sm font-semibold ${themeClasses.textSecondary} mb-2`}>Status Indicators</h4>

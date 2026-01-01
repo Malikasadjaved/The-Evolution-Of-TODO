@@ -595,8 +595,8 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Center: Premium Search Bar */}
-            <div className="hidden md:flex items-center gap-3 flex-1 max-w-[700px]">
+            {/* Center: Premium Search Bar + Sort */}
+            <div className="hidden md:flex items-center gap-3 flex-1 max-w-[900px]">
               {/* Premium Search Bar with Suggestions */}
               <div className="flex-1">
                 <PremiumSearchBar
@@ -632,6 +632,16 @@ export default function DashboardPage() {
                   }}
                 />
               </div>
+
+              {/* Sort Dropdown */}
+              <SortDropdown
+                initialSort={sortField}
+                initialOrder={sortOrder}
+                onSortChange={(field, order) => {
+                  setSortField(field)
+                  setSortOrder(order)
+                }}
+              />
             </div>
 
             {/* Right: Notifications + User Menu + Toggle Panel */}
