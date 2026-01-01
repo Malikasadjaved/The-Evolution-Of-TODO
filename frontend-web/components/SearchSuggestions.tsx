@@ -36,13 +36,6 @@ interface Task {
   due_date?: string | null
 }
 
-interface QuickFilter {
-  id: string
-  label: string
-  icon: string
-  action: () => void
-}
-
 interface SearchSuggestionsProps {
   isOpen: boolean
   searchQuery: string
@@ -51,6 +44,7 @@ interface SearchSuggestionsProps {
   onTaskClick?: (taskId: number) => void
   onQuickFilterClick?: (filterId: string) => void
   onRecentSearchClick?: (search: string) => void
+  onDeleteRecentSearch?: (search: string) => void
   onClose?: () => void
   selectedIndex?: number
   onSelectIndex?: (index: number) => void
@@ -64,34 +58,13 @@ export const SearchSuggestions: React.FC<SearchSuggestionsProps> = ({
   onTaskClick,
   onQuickFilterClick,
   onRecentSearchClick,
+  onDeleteRecentSearch,
   onClose,
   selectedIndex = -1,
   onSelectIndex,
 }) => {
   const { theme } = useTheme()
   const isDark = theme === 'dark'
-
-  // Quick filters
-  const quickFilters: QuickFilter[] = [
-    {
-      id: 'high_priority',
-      label: 'High Priority',
-      icon: '🔴',
-      action: () => onQuickFilterClick?.('high_priority'),
-    },
-    {
-      id: 'due_today',
-      label: 'Due Today',
-      icon: '📅',
-      action: () => onQuickFilterClick?.('due_today'),
-    },
-    {
-      id: 'overdue',
-      label: 'Overdue',
-      icon: '⚠️',
-      action: () => onQuickFilterClick?.('overdue'),
-    },
-  ]
 
   // Filter tasks based on search query
   const filteredTasks = searchQuery.trim()
@@ -107,7 +80,7 @@ export const SearchSuggestions: React.FC<SearchSuggestionsProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       const totalItems = searchQuery.trim()
         ? filteredTasks.length
-        : recentSearches.length + quickFilters.length
+        : recentSearches.length
 
       if (e.key === 'ArrowDown') {
         e.preventDefault()
@@ -125,8 +98,6 @@ export const SearchSuggestions: React.FC<SearchSuggestionsProps> = ({
         } else {
           if (selectedIndex < recentSearches.length) {
             onRecentSearchClick?.(recentSearches[selectedIndex])
-          } else {
-            quickFilters[selectedIndex - recentSearches.length]?.action()
           }
         }
       } else if (e.key === 'Escape') {
@@ -142,7 +113,6 @@ export const SearchSuggestions: React.FC<SearchSuggestionsProps> = ({
     searchQuery,
     filteredTasks,
     recentSearches,
-    quickFilters,
     onSelectIndex,
     onTaskClick,
     onRecentSearchClick,
@@ -324,7 +294,7 @@ export const SearchSuggestions: React.FC<SearchSuggestionsProps> = ({
             // Default Mode (Recent Searches + Quick Filters)
             <>
               {/* Recent Searches */}
-              {recentSearches.length > 0 && (
+              {recentSearches.length > 0 ? (
                 <>
                   <div
                     className={`
@@ -335,11 +305,10 @@ export const SearchSuggestions: React.FC<SearchSuggestionsProps> = ({
                     Recent Searches
                   </div>
                   {recentSearches.slice(0, 5).map((search, index) => (
-                    <motion.button
+                    <motion.div
                       key={search}
-                      onClick={() => onRecentSearchClick?.(search)}
                       className={`
-                        w-full px-4 py-2.5 text-left transition-colors
+                        w-full px-4 py-2.5 transition-colors relative
                         ${
                           selectedIndex === index
                             ? isDark
@@ -350,75 +319,85 @@ export const SearchSuggestions: React.FC<SearchSuggestionsProps> = ({
                             : 'hover:bg-gray-50'
                         }
                         border-b ${isDark ? 'border-blue-500/10' : 'border-gray-100'}
-                        flex items-center gap-3
+                        flex items-center gap-3 group
                       `}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.03 }}
                     >
-                      <svg
-                        className={`w-4 h-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                      <button
+                        onClick={() => onRecentSearchClick?.(search)}
+                        className="flex items-center gap-3 flex-1 text-left"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      <span className={`text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                        {search}
-                      </span>
-                    </motion.button>
+                        <svg
+                          className={`w-4 h-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        <span className={`text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                          {search}
+                        </span>
+                      </button>
+
+                      {/* Delete Button */}
+                      <motion.button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onDeleteRecentSearch?.(search)
+                        }}
+                        className={`
+                          opacity-0 group-hover:opacity-100 transition-opacity
+                          p-1.5 rounded-lg
+                          ${isDark ? 'hover:bg-red-500/20 text-red-400' : 'hover:bg-red-100 text-red-600'}
+                        `}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        aria-label="Delete recent search"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </motion.button>
+                    </motion.div>
                   ))}
                 </>
-              )}
-
-              {/* Quick Filters */}
-              <div
-                className={`
-                px-4 py-2 text-xs font-semibold uppercase tracking-wide
-                ${isDark ? 'text-gray-400 bg-white/5' : 'text-gray-600 bg-gray-50'}
-                ${recentSearches.length > 0 ? 'mt-2' : ''}
-              `}
-              >
-                Quick Filters
-              </div>
-              {quickFilters.map((filter, index) => {
-                const actualIndex = recentSearches.length + index
-                return (
-                  <motion.button
-                    key={filter.id}
-                    onClick={filter.action}
-                    className={`
-                      w-full px-4 py-2.5 text-left transition-colors
-                      ${
-                        selectedIndex === actualIndex
-                          ? isDark
-                            ? 'bg-cyan-500/20'
-                            : 'bg-blue-100'
-                          : isDark
-                          ? 'hover:bg-white/5'
-                          : 'hover:bg-gray-50'
-                      }
-                      border-b ${isDark ? 'border-blue-500/10' : 'border-gray-100'}
-                      last:border-b-0
-                      flex items-center gap-3
-                    `}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: (recentSearches.length + index) * 0.03 }}
+              ) : (
+                // Empty state when no recent searches
+                <div className="flex flex-col items-center justify-center py-8 px-4">
+                  <svg
+                    className={`w-12 h-12 mb-3 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    <span className="text-base">{filter.icon}</span>
-                    <span className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                      {filter.label}
-                    </span>
-                  </motion.button>
-                )
-              })}
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                  <p className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                    No recent searches
+                  </p>
+                  <p className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                    Your search history will appear here
+                  </p>
+                </div>
+              )}
             </>
           )}
         </motion.div>

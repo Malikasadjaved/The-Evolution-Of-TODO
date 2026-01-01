@@ -221,9 +221,13 @@ export function useCreateTask() {
     }) => createTask(userId, data),
 
     onSuccess: (newTask, variables) => {
-      // Invalidate tasks list to refetch
+      // Invalidate ALL task lists for this user (regardless of filters)
       queryClient.invalidateQueries({
-        queryKey: taskKeys.list(variables.userId),
+        queryKey: taskKeys.lists(), // Invalidate all list queries
+        predicate: (query) => {
+          // Match any query that includes this userId
+          return query.queryKey.includes(variables.userId)
+        },
       })
     },
   })
@@ -302,9 +306,12 @@ export function useUpdateTask() {
 
     // Refetch on success or error
     onSettled: (data, error, variables) => {
+      // Invalidate ALL task lists for this user
       queryClient.invalidateQueries({
-        queryKey: taskKeys.list(variables.userId),
+        queryKey: taskKeys.lists(),
+        predicate: (query) => query.queryKey.includes(variables.userId),
       })
+      // Invalidate task detail
       queryClient.invalidateQueries({
         queryKey: taskKeys.detail(variables.userId, variables.taskId),
       })
@@ -359,8 +366,10 @@ export function useDeleteTask() {
     },
 
     onSettled: (data, error, variables) => {
+      // Invalidate ALL task lists for this user
       queryClient.invalidateQueries({
-        queryKey: taskKeys.list(variables.userId),
+        queryKey: taskKeys.lists(),
+        predicate: (query) => query.queryKey.includes(variables.userId),
       })
     },
   })
@@ -436,8 +445,10 @@ export function useToggleTaskStatus() {
     },
 
     onSettled: (data, error, variables) => {
+      // Invalidate ALL task lists for this user
       queryClient.invalidateQueries({
-        queryKey: taskKeys.list(variables.userId),
+        queryKey: taskKeys.lists(),
+        predicate: (query) => query.queryKey.includes(variables.userId),
       })
     },
   })

@@ -151,10 +151,17 @@ export const PremiumSearchBar: React.FC<PremiumSearchBarProps> = ({
     setShowSuggestions(false)
   }
 
+  // Handle delete recent search
+  const handleDeleteRecentSearch = (search: string) => {
+    const updated = recentSearches.filter((s) => s !== search)
+    setRecentSearches(updated)
+    localStorage.setItem('recentSearches', JSON.stringify(updated))
+  }
+
   return (
     <motion.div
       ref={containerRef}
-      className="relative w-full max-w-[400px]"
+      className="relative w-full max-w-[600px]"
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
@@ -423,6 +430,7 @@ export const PremiumSearchBar: React.FC<PremiumSearchBarProps> = ({
         onTaskClick={handleTaskClick}
         onQuickFilterClick={handleQuickFilterClick}
         onRecentSearchClick={handleRecentSearchClick}
+        onDeleteRecentSearch={handleDeleteRecentSearch}
         onClose={() => setShowSuggestions(false)}
         selectedIndex={selectedSuggestionIndex}
         onSelectIndex={setSelectedSuggestionIndex}

@@ -198,7 +198,7 @@ export function WeekView({ tasks = [], onDateClick, selectedDate }: WeekViewProp
                 transition={{ delay: index * 0.05, type: 'spring', stiffness: 300 }}
                 onClick={() => onDateClick?.(day.date)}
                 className={`
-                  relative rounded-xl p-3 transition-all
+                  relative rounded-xl p-3 transition-all flex flex-col items-center justify-center
                   ${day.isToday ? 'bg-gradient-to-br from-indigo-600/40 to-purple-600/40 ring-2 ring-indigo-400/50 shadow-lg shadow-indigo-500/30' : 'bg-white/5 hover:bg-white/10'}
                   ${isSelected(day.date) ? 'ring-2 ring-pink-400/50 bg-pink-500/20' : ''}
                   ${hasOverdueTasks && !day.isToday ? 'bg-red-500/10 border border-red-500/30' : ''}
@@ -207,11 +207,11 @@ export function WeekView({ tasks = [], onDateClick, selectedDate }: WeekViewProp
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
               >
-                {/* Day Name & Number */}
-                <div className="text-center mb-2">
-                  <p className="text-xs text-white/60 font-medium">{day.dayName}</p>
+                {/* Day Name & Number - Properly Centered */}
+                <div className="flex flex-col items-center justify-center w-full">
+                  <p className="text-xs text-white/60 font-medium mb-1">{day.dayName}</p>
                   <p
-                    className={`text-lg font-bold ${
+                    className={`text-lg font-bold leading-none ${
                       day.isToday ? 'text-white' : 'text-white/80'
                     }`}
                   >
@@ -219,12 +219,12 @@ export function WeekView({ tasks = [], onDateClick, selectedDate }: WeekViewProp
                   </p>
                 </div>
 
-                {/* Task Count Badge */}
+                {/* Task Count Badge - MOVED BELOW DATE */}
                 {day.tasks.length > 0 && (
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    className="absolute top-2 right-2 w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center"
+                    className="mt-2 w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center"
                   >
                     <span className="text-xs font-bold text-white">
                       {day.tasks.length}
@@ -232,9 +232,9 @@ export function WeekView({ tasks = [], onDateClick, selectedDate }: WeekViewProp
                   </motion.div>
                 )}
 
-                {/* Task Dots (Priority Indicators) */}
+                {/* Task Dots (Priority Indicators) - Below Task Count */}
                 {day.tasks.length > 0 && (
-                  <div className="flex justify-center gap-1">
+                  <div className="flex justify-center gap-1 mt-1">
                     {day.tasks
                       .slice(0, 3)
                       .map((task) => (

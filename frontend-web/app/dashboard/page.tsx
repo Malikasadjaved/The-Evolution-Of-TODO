@@ -37,6 +37,8 @@ import { FABGroup } from '@/components/FABGroup'
 import { StatsGrid } from '@/components/StatsGrid'
 import { ProgressBar } from '@/components/ProgressBar'
 import { NotificationBell } from '@/components/NotificationBell'
+import { X, Calendar as CalendarIcon, Clock } from 'lucide-react'
+import { Badge } from '@/components/ui/Badge'
 import { useAuth } from '@/hooks/useAuth'
 import { useTasks, useDeleteTask, useToggleTaskStatus } from '@/hooks/useTasks'
 import { useToast } from '@/components/ui/Toast'
@@ -66,6 +68,9 @@ export default function DashboardPage() {
   // Calendar date filtering (PROMPT 4 enhancement)
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | null>(null)
 
+  // Priority-based filtering (similar to calendar filter)
+  const [selectedPriorityFilter, setSelectedPriorityFilter] = useState<'HIGH' | 'MEDIUM' | 'LOW' | null>(null)
+
   // Real-time relative time updates (every minute)
   const [currentTime, setCurrentTime] = useState(new Date())
 
@@ -94,6 +99,10 @@ export default function DashboardPage() {
   // Task form modal state
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false)
   const [selectedTask, setSelectedTask] = useState<Task | undefined>(undefined)
+
+  // Task detail drawer state
+  const [isTaskDrawerOpen, setIsTaskDrawerOpen] = useState(false)
+  const [taskForDrawer, setTaskForDrawer] = useState<Task | null>(null)
 
   // Delete confirmation state
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -182,6 +191,18 @@ export default function DashboardPage() {
   const handleDeleteTask = (task: Task) => {
     setTaskToDelete(task)
     setIsDeleteDialogOpen(true)
+  }
+
+  // Handler: Open task detail drawer
+  const handleOpenTaskDrawer = (task: Task) => {
+    setTaskForDrawer(task)
+    setIsTaskDrawerOpen(true)
+  }
+
+  // Handler: Close task detail drawer
+  const handleCloseTaskDrawer = () => {
+    setIsTaskDrawerOpen(false)
+    setTaskForDrawer(null)
   }
 
   // Handler: Confirm delete
@@ -280,6 +301,32 @@ export default function DashboardPage() {
     setSelectedCalendarDate(null)
   }
 
+  // Handler: Clear priority filter
+  const handleClearPriorityFilter = () => {
+    setSelectedPriorityFilter(null)
+  }
+
+  // Auto-detect priority keywords in search query
+  useEffect(() => {
+    if (!searchQuery) {
+      return
+    }
+
+    const query = searchQuery.toLowerCase().trim()
+
+    // Detect priority keywords
+    if (query.includes('high priority') || query === 'high') {
+      setSelectedPriorityFilter('HIGH')
+      setSearchQuery('') // Clear search after applying filter
+    } else if (query.includes('medium priority') || query === 'medium') {
+      setSelectedPriorityFilter('MEDIUM')
+      setSearchQuery('') // Clear search after applying filter
+    } else if (query.includes('low priority') || query === 'low') {
+      setSelectedPriorityFilter('LOW')
+      setSearchQuery('') // Clear search after applying filter
+    }
+  }, [searchQuery])
+
   // Setup global keyboard shortcuts
   useKeyboardShortcuts({
     onOpenCommandPalette: () => {
@@ -312,20 +359,31 @@ export default function DashboardPage() {
 
   // All filtering now handled by backend (search, status, priority, tags)
   // PLUS client-side calendar date filtering (PROMPT 4 enhancement)
+  // PLUS client-side priority filtering (similar to calendar filter)
   const filteredTasks = tasks?.filter((task) => {
-    // If no date filter, show all tasks
-    if (!selectedCalendarDate) return true
+    // Priority filter (if active)
+    if (selectedPriorityFilter && task.priority !== selectedPriorityFilter) {
+      return false
+    }
 
-    // If task has no due date, exclude it
-    if (!task.due_date) return false
+    // Date filter (if active)
+    if (selectedCalendarDate) {
+      // If task has no due date, exclude it
+      if (!task.due_date) return false
 
-    // Compare dates (ignore time)
-    const taskDate = new Date(task.due_date)
-    taskDate.setHours(0, 0, 0, 0)
-    const filterDate = new Date(selectedCalendarDate)
-    filterDate.setHours(0, 0, 0, 0)
+      // Compare dates (ignore time)
+      const taskDate = new Date(task.due_date)
+      taskDate.setHours(0, 0, 0, 0)
+      const filterDate = new Date(selectedCalendarDate)
+      filterDate.setHours(0, 0, 0, 0)
 
-    return taskDate.getTime() === filterDate.getTime()
+      if (taskDate.getTime() !== filterDate.getTime()) {
+        return false
+      }
+    }
+
+    // Pass all other filters
+    return true
   })
 
   // Group tasks by status
@@ -772,6 +830,83 @@ export default function DashboardPage() {
                   </motion.div>
                 )}
 
+                {/* Priority Filter Label (Show active priority filter) */}
+                {selectedPriorityFilter && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className={`mb-6 flex items-center justify-between backdrop-blur-lg border rounded-xl px-6 py-4 ${
+                      selectedPriorityFilter === 'HIGH'
+                        ? 'bg-gradient-to-r from-red-500/20 to-orange-500/20 border-red-400/30'
+                        : selectedPriorityFilter === 'MEDIUM'
+                        ? 'bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border-yellow-400/30'
+                        : 'bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-green-400/30'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                          selectedPriorityFilter === 'HIGH'
+                            ? 'bg-red-500/30'
+                            : selectedPriorityFilter === 'MEDIUM'
+                            ? 'bg-yellow-500/30'
+                            : 'bg-green-500/30'
+                        }`}
+                      >
+                        <svg
+                          className={`w-5 h-5 ${
+                            selectedPriorityFilter === 'HIGH'
+                              ? 'text-red-300'
+                              : selectedPriorityFilter === 'MEDIUM'
+                              ? 'text-yellow-300'
+                              : 'text-green-300'
+                          }`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                          />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-xs text-white/60 font-medium">
+                          Showing {selectedPriorityFilter.toLowerCase()} priority tasks
+                        </p>
+                        <p className="text-white font-semibold">
+                          {filteredTasks?.length || 0} {filteredTasks?.length === 1 ? 'task' : 'tasks'} found
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleClearPriorityFilter}
+                      className="text-white/70 hover:text-white"
+                    >
+                      <svg
+                        className="w-4 h-4 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                      Clear Filter
+                    </Button>
+                  </motion.div>
+                )}
+
                 <div className="grid grid-cols-2 gap-6">
                   {columns.map((column, columnIndex) => (
                   <motion.div
@@ -887,6 +1022,7 @@ export default function DashboardPage() {
                               onClick={() => handleEditTask(task)}
                               onDelete={handleDeleteTask}
                               onToggleStatus={handleToggleStatus}
+                              onCheckboxClick={handleOpenTaskDrawer}
                             />
                           ))
                         )}
@@ -1120,6 +1256,173 @@ export default function DashboardPage() {
 
       {/* Integrated AI Chatbot */}
       <ChatBox isOpen={isChatBoxOpen} onToggle={handleChatBoxToggle} />
+
+      {/* Task Detail Drawer */}
+      <AnimatePresence>
+        {isTaskDrawerOpen && taskForDrawer && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={handleCloseTaskDrawer}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
+            />
+
+            {/* Drawer */}
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed right-0 top-0 h-full w-full max-w-md bg-slate-900 border-l border-white/10 shadow-2xl z-[70] overflow-y-auto"
+            >
+              <div className="p-6 border-b border-white/10">
+                <div className="flex items-start justify-between mb-4">
+                  <h3 className="text-2xl font-bold text-white leading-tight">
+                    {taskForDrawer.title}
+                  </h3>
+                  <button
+                    onClick={handleCloseTaskDrawer}
+                    className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/70 hover:text-white"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant={
+                      taskForDrawer.priority.toLowerCase() as 'high' | 'medium' | 'low'
+                    }
+                    size="sm"
+                  >
+                    {taskForDrawer.priority}
+                  </Badge>
+                  <Badge
+                    variant={taskForDrawer.status === 'COMPLETE' ? 'low' : 'info'}
+                    size="sm"
+                  >
+                    {taskForDrawer.status}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-6">
+                <div>
+                  <h4 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-2">
+                    Description
+                  </h4>
+                  <p className="text-white/80 leading-relaxed bg-white/5 p-4 rounded-xl border border-white/5">
+                    {taskForDrawer.description || 'No description provided'}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-2">
+                      Due Date
+                    </h4>
+                    <div className="flex items-center gap-2 text-white/80 bg-white/5 p-3 rounded-xl border border-white/5">
+                      <CalendarIcon className="w-4 h-4 text-cyan-400" />
+                      <span className="text-sm">
+                        {taskForDrawer.due_date
+                          ? new Date(taskForDrawer.due_date).toLocaleDateString(
+                              'en-US',
+                              {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              }
+                            )
+                          : 'No due date'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-2">
+                      Created
+                    </h4>
+                    <div className="flex items-center gap-2 text-white/80 bg-white/5 p-3 rounded-xl border border-white/5">
+                      <Clock className="w-4 h-4 text-purple-400" />
+                      <span className="text-sm">
+                        {new Date(taskForDrawer.created_at).toLocaleDateString(
+                          'en-US',
+                          {
+                            month: 'short',
+                            day: 'numeric',
+                          }
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {taskForDrawer.tags && taskForDrawer.tags.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-2">
+                      Tags
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {taskForDrawer.tags.map((tag, idx) => (
+                        <span
+                          key={idx}
+                          className="px-3 py-1 bg-cyan-500/10 text-cyan-400 text-xs rounded-full border border-cyan-500/20"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="pt-6 border-t border-white/10 flex flex-col gap-3">
+                  <Button
+                    onClick={() => {
+                      handleToggleStatus(
+                        taskForDrawer.id,
+                        taskForDrawer.status === 'COMPLETE'
+                          ? 'INCOMPLETE'
+                          : 'COMPLETE'
+                      )
+                      handleCloseTaskDrawer()
+                    }}
+                    variant="primary"
+                    className="w-full py-4 text-lg font-bold shadow-lg shadow-cyan-500/20"
+                  >
+                    {taskForDrawer.status === 'COMPLETE'
+                      ? 'Mark Incomplete'
+                      : 'Mark Complete'}
+                  </Button>
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={() => {
+                        handleEditTask(taskForDrawer)
+                        handleCloseTaskDrawer()
+                      }}
+                      variant="secondary"
+                      className="flex-1 py-3"
+                    >
+                      Edit Details
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        handleDeleteTask(taskForDrawer)
+                        handleCloseTaskDrawer()
+                      }}
+                      variant="danger"
+                      className="flex-1 py-3"
+                    >
+                      Delete Task
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

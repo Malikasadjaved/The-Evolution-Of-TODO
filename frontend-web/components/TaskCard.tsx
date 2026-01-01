@@ -31,9 +31,10 @@ interface TaskCardProps {
   onToggleStatus?: (taskId: number, status: 'COMPLETE' | 'INCOMPLETE') => void
   onEdit?: (task: Task) => void
   onUpdatePriority?: (taskId: number, priority: 'LOW' | 'MEDIUM' | 'HIGH') => void
+  onCheckboxClick?: (task: Task) => void
 }
 
-export function TaskCard({ task, index = 0, onClick, onDelete, onToggleStatus, onEdit, onUpdatePriority }: TaskCardProps) {
+export function TaskCard({ task, index = 0, onClick, onDelete, onToggleStatus, onEdit, onUpdatePriority, onCheckboxClick }: TaskCardProps) {
   // Check if task is overdue
   const isOverdue =
     task.due_date &&
@@ -166,13 +167,21 @@ export function TaskCard({ task, index = 0, onClick, onDelete, onToggleStatus, o
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-start gap-3 flex-1">
           {onToggleStatus && (
-            <div className="mt-0.5" onClick={(e) => e.stopPropagation()}>
+            <div
+              className="mt-0.5"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onCheckboxClick) {
+                  onCheckboxClick(task);
+                } else {
+                  const newStatus = task.status === 'COMPLETE' ? 'INCOMPLETE' : 'COMPLETE';
+                  onToggleStatus(task.id, newStatus);
+                }
+              }}
+            >
               <Checkbox
                 checked={task.status === 'COMPLETE'}
-                onChange={(checked) => {
-                  const newStatus = checked ? 'COMPLETE' : 'INCOMPLETE'
-                  onToggleStatus(task.id, newStatus)
-                }}
+                onChange={() => {}} // Controlled by the div onClick for specific behavior
                 priority={task.priority}
                 aria-label={task.status === 'COMPLETE' ? 'Mark incomplete' : 'Mark complete'}
               />
