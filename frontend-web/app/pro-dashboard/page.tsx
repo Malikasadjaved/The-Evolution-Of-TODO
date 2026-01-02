@@ -517,7 +517,7 @@ const ProDashboard = () => {
                 Description
               </label>
               <textarea
-                value={editedTask.description}
+                value={editedTask.description || ''}
                 onChange={e => setEditedTask({ ...editedTask, description: e.target.value })}
                 rows={4}
                 className={`w-full px-4 py-3 ${themeClasses.inputBg} border ${themeClasses.inputBorder} rounded-lg ${themeClasses.inputFocus} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all resize-none ${themeClasses.inputText}`}
