@@ -551,7 +551,7 @@ const ProDashboard = () => {
                 </label>
                 <input
                   type="date"
-                  value={editedTask.due_date}
+                  value={editedTask.due_date?.split('T')[0] || ''}
                   onChange={e => setEditedTask({ ...editedTask, due_date: e.target.value })}
                   className={`w-full px-4 py-3 ${themeClasses.inputBg} border ${themeClasses.inputBorder} rounded-lg ${themeClasses.inputFocus} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all ${themeClasses.inputText}`}
                 />
