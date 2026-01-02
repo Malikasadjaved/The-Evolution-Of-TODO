@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Select'
 import { SearchBar } from '@/components/SearchBar'
 import { PremiumSearchBar } from '@/components/PremiumSearchBar'
-import { SortDropdown } from '@/components/SortDropdown'
+import { SortDropdown, type SortField } from '@/components/SortDropdown'
 import { TaskCard } from '@/components/TaskCard'
 import { CompletedTaskItem } from '@/components/CompletedTaskItem'
 import { ClearCompletedButton } from '@/components/ClearCompletedButton'
@@ -34,6 +34,7 @@ import { UserMenu } from '@/components/UserMenu'
 import { ChatBox } from '@/components/ChatBox'
 import { CommandPalette } from '@/components/CommandPalette'
 import { FABGroup } from '@/components/FABGroup'
+import { FloatingActionButtons } from '@/components/FloatingActionButtons'
 import { StatsGrid } from '@/components/StatsGrid'
 import { ProgressBar } from '@/components/ProgressBar'
 import { NotificationBell } from '@/components/NotificationBell'
@@ -61,8 +62,8 @@ export default function DashboardPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterPriority, setFilterPriority] = useState<string>('all')
   const [filterTags, setFilterTags] = useState<string>('all')
-  const [sortField, setSortField] = useState<string>('')
-  const [sortOrder, setSortOrder] = useState<string>('asc')
+  const [sortField, setSortField] = useState<SortField>('')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true)
 
   // Calendar date filtering (PROMPT 4 enhancement)
@@ -1257,8 +1258,8 @@ export default function DashboardPage() {
         onOpenChange={setIsCommandPaletteOpen}
       />
 
-      {/* Floating Action Button Group */}
-      <FABGroup
+      {/* Floating Action Button Group - New Design */}
+      <FloatingActionButtons
         onCreateTask={handleCreateTask}
         onOpenAIChat={handleOpenChatBox}
         showAIChat={true}

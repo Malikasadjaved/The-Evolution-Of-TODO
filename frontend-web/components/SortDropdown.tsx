@@ -29,8 +29,8 @@ import {
   type LucideIcon
 } from 'lucide-react';
 
-type SortField = 'due_date' | 'priority' | 'created_at' | 'title' | '';
-type SortOrder = 'asc' | 'desc';
+export type SortField = 'due_date' | 'priority' | 'created_at' | 'title' | '';
+export type SortOrder = 'asc' | 'desc';
 
 interface SortOption {
   value: SortField;
