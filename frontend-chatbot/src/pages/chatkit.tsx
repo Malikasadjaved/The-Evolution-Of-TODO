@@ -27,7 +27,7 @@
 
 import React, { useState, useEffect } from "react";
 import Head from "next/head";
-import { ChatKit } from "@openai/chatkit";
+import { ChatKit } from "@/components/ChatKit";
 import { isAuthenticated, getAPIBaseURL } from "@/lib/api";
 
 // ============================================================================
