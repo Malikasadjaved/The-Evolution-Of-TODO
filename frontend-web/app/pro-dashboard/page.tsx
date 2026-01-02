@@ -44,8 +44,12 @@ const ProDashboard = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'today' | 'upcoming' | 'complete'>('all')
-  const [selectedPriorityFilter, setSelectedPriorityFilter] = useState<'HIGH' | 'MEDIUM' | 'LOW' | 'all'>('all')
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'today' | 'upcoming' | 'complete'>(
+    'all'
+  )
+  const [selectedPriorityFilter, setSelectedPriorityFilter] = useState<
+    'HIGH' | 'MEDIUM' | 'LOW' | 'all'
+  >('all')
   const [selectedTagFilter, setSelectedTagFilter] = useState<string>('all')
   const [sortField, setSortField] = useState<'due_date' | 'priority' | 'title'>('due_date')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
@@ -56,6 +60,7 @@ const ProDashboard = () => {
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [priorityMenuOpen, setPriorityMenuOpen] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(true)
   const [newTask, setNewTask] = useState<{
     title: string
@@ -141,7 +146,7 @@ const ProDashboard = () => {
     const now = new Date()
     const today = now.toISOString().split('T')[0]
 
-    const filtered = tasks.filter((task) => {
+    const filtered = tasks.filter(task => {
       const matchesSearch =
         task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -156,7 +161,8 @@ const ProDashboard = () => {
           matchesFilter = task.status === 'INCOMPLETE' && taskDate === today
           break
         case 'upcoming':
-          matchesFilter = task.status === 'INCOMPLETE' && task.due_date && new Date(task.due_date) > now
+          matchesFilter =
+            task.status === 'INCOMPLETE' && !!task.due_date && new Date(task.due_date) > now
           break
         case 'complete':
           matchesFilter = task.status === 'COMPLETE'
@@ -164,11 +170,12 @@ const ProDashboard = () => {
       }
 
       // Priority filter
-      const matchesPriority = selectedPriorityFilter === 'all' || task.priority === selectedPriorityFilter
+      const matchesPriority =
+        selectedPriorityFilter === 'all' || task.priority === selectedPriorityFilter
 
       // Tag filter (if task has tags and filter is active)
-      const matchesTag = selectedTagFilter === 'all' ||
-        (task.tags && task.tags.includes(selectedTagFilter))
+      const matchesTag =
+        selectedTagFilter === 'all' || (task.tags && task.tags.includes(selectedTagFilter))
 
       return matchesSearch && matchesFilter && matchesPriority && matchesTag
     })
@@ -190,18 +197,26 @@ const ProDashboard = () => {
 
       return sortOrder === 'asc' ? comparison : -comparison
     })
-  }, [tasks, searchQuery, selectedFilter, selectedPriorityFilter, selectedTagFilter, sortField, sortOrder])
+  }, [
+    tasks,
+    searchQuery,
+    selectedFilter,
+    selectedPriorityFilter,
+    selectedTagFilter,
+    sortField,
+    sortOrder,
+  ])
 
   const stats = useMemo(() => {
     const now = new Date()
     const today = now.toISOString().split('T')[0]
 
     return {
-      total: tasks.filter((t) => t.status === 'INCOMPLETE').length,
-      completed: tasks.filter((t) => t.status === 'COMPLETE').length,
-      inProgress: tasks.filter((t) => t.status === 'INCOMPLETE').length,
+      total: tasks.filter(t => t.status === 'INCOMPLETE').length,
+      completed: tasks.filter(t => t.status === 'COMPLETE').length,
+      inProgress: tasks.filter(t => t.status === 'INCOMPLETE').length,
       overdue: tasks.filter(
-        (t) => t.status === 'INCOMPLETE' && t.due_date && new Date(t.due_date) < now
+        t => t.status === 'INCOMPLETE' && t.due_date && new Date(t.due_date) < now
       ).length,
     }
   }, [tasks])
@@ -210,15 +225,13 @@ const ProDashboard = () => {
     if (!session?.user?.id) return
 
     try {
-      const task = tasks.find((t) => t.id === taskId)
+      const task = tasks.find(t => t.id === taskId)
       if (!task) return
 
       const newStatus = task.status === 'COMPLETE' ? 'INCOMPLETE' : 'COMPLETE'
       await api.toggleTaskStatus(session.user.id, taskId, newStatus)
       // Update local state immediately for better UX
-      setTasks(prev => prev.map(t =>
-        t.id === taskId ? { ...t, status: newStatus } : t
-      ))
+      setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, status: newStatus } : t)))
     } catch (error) {
       console.error('Failed to toggle task status:', error)
       // Refetch on error to sync state
@@ -266,9 +279,7 @@ const ProDashboard = () => {
     try {
       const updatedTask = await api.updateTask(session.user.id, taskId, updates)
       // Update local state immediately for better UX
-      setTasks(prev => prev.map(t =>
-        t.id === taskId ? updatedTask : t
-      ))
+      setTasks(prev => prev.map(t => (t.id === taskId ? updatedTask : t)))
     } catch (error) {
       console.error('Failed to update task:', error)
       // Refetch on error to sync state
@@ -353,58 +364,59 @@ const ProDashboard = () => {
         shadowLg: 'shadow-2xl shadow-black/40',
       }
     } else {
-      // LIGHT MODE - Premium Light Theme
+      // LIGHT MODE - Soft Professional Theme
       return {
         // Main Layout
-        mainBg: 'bg-slate-50',
-        sidebarBg: 'bg-white',
+        mainBg: 'bg-[#F8F9FA]',
+        sidebarBg: 'bg-[#F5F5F7]',
         headerBg: 'bg-white/95',
 
         // Cards & Surfaces
         cardBg: 'bg-white',
-        cardHover: 'hover:bg-slate-50',
-        cardBorder: 'border-slate-200',
-        cardShadow: 'shadow-sm',
+        cardHover: 'hover:bg-gray-50/80',
+        cardBorder: 'border-transparent',
+        cardShadow: 'shadow-sm shadow-gray-200/50',
 
         // Stats Cards
-        statCardBg: 'bg-gradient-to-br from-white to-slate-50/50',
-        statCardBorder: 'border-slate-200',
-        statCardHover: 'hover:border-purple-400/40 hover:shadow-md hover:shadow-purple-500/5',
+        statCardBg: 'bg-white',
+        statCardBorder: 'border-transparent',
+        statCardHover: 'hover:shadow-md hover:shadow-purple-200/30',
 
         // Task Cards
         taskCard: 'bg-white',
-        taskCardHover: 'hover:bg-slate-50/80 hover:border-purple-400/50',
-        taskCardBorder: 'border-slate-200',
+        taskCardHover: 'hover:shadow-md hover:shadow-gray-300/30 hover:border-transparent',
+        taskCardBorder: 'border-transparent',
 
         // Inputs
         inputBg: 'bg-white',
-        inputBorder: 'border-slate-300',
-        inputFocus: 'focus:border-purple-500 focus:bg-white',
-        inputText: 'text-slate-900 placeholder:text-slate-400',
+        inputBorder: 'border-gray-200',
+        inputFocus:
+          'focus:border-purple-400 focus:bg-white focus:shadow-sm focus:shadow-purple-200/20',
+        inputText: 'text-gray-800 placeholder:text-gray-400',
 
         // Text Colors
-        textPrimary: 'text-slate-900',
-        textSecondary: 'text-slate-600',
-        textMuted: 'text-slate-400',
+        textPrimary: 'text-gray-800',
+        textSecondary: 'text-gray-600',
+        textMuted: 'text-gray-400',
 
         // Borders
-        border: 'border-slate-200',
-        borderStrong: 'border-slate-300',
-        divider: 'border-slate-200',
+        border: 'border-gray-200/50',
+        borderStrong: 'border-gray-300',
+        divider: 'border-gray-200/50',
 
         // Interactive Elements
-        buttonSecondary: 'bg-slate-100 hover:bg-slate-200',
+        buttonSecondary: 'bg-gray-100 hover:bg-gray-200',
         dropdownBg: 'bg-white',
-        dropdownHover: 'hover:bg-slate-50',
+        dropdownHover: 'hover:bg-gray-50',
 
         // Modal
-        modalBackdrop: 'bg-slate-900/30',
+        modalBackdrop: 'bg-gray-900/20',
         modalBg: 'bg-white',
-        modalBorder: 'border-slate-200',
+        modalBorder: 'border-gray-200/50',
 
         // Shadows
-        shadow: 'shadow-lg shadow-slate-200/60',
-        shadowLg: 'shadow-xl shadow-slate-300/40',
+        shadow: 'shadow-lg shadow-gray-200/40',
+        shadowLg: 'shadow-xl shadow-gray-300/30',
       }
     }
   }
@@ -444,9 +456,13 @@ const ProDashboard = () => {
   }
 
   // Edit Modal Component
-  const TaskEditModal = ({ task, onSave, onClose }: {
-    task: Task;
-    onSave: (id: number, updates: UpdateTaskInput) => void;
+  const TaskEditModal = ({
+    task,
+    onSave,
+    onClose,
+  }: {
+    task: Task
+    onSave: (id: number, updates: UpdateTaskInput) => void
     onClose: () => void
   }) => {
     const [editedTask, setEditedTask] = useState<UpdateTaskInput>({
@@ -462,8 +478,12 @@ const ProDashboard = () => {
     }
 
     return (
-      <div className={`fixed inset-0 ${themeClasses.modalBackdrop} backdrop-blur-sm flex items-center justify-center z-50 p-4`}>
-        <div className={`${themeClasses.modalBg} rounded-2xl border ${themeClasses.modalBorder} w-full max-w-lg ${themeClasses.shadowLg}`}>
+      <div
+        className={`fixed inset-0 ${themeClasses.modalBackdrop} backdrop-blur-sm flex items-center justify-center z-50 p-4`}
+      >
+        <div
+          className={`${themeClasses.modalBg} rounded-2xl border ${themeClasses.modalBorder} w-full max-w-lg ${themeClasses.shadowLg}`}
+        >
           <div className={`flex items-center justify-between p-6 border-b ${themeClasses.divider}`}>
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-500/10 rounded-lg">
@@ -471,27 +491,34 @@ const ProDashboard = () => {
               </div>
               <h3 className={`text-xl font-bold ${themeClasses.textPrimary}`}>Edit Task</h3>
             </div>
-            <button onClick={onClose} className={`p-2 ${themeClasses.cardHover} rounded-lg transition-colors ${themeClasses.textPrimary}`}>
+            <button
+              onClick={onClose}
+              className={`p-2 ${themeClasses.cardHover} rounded-lg transition-colors ${themeClasses.textPrimary}`}
+            >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           <div className="p-6 space-y-4">
             <div>
-              <label className={`block text-sm font-medium mb-2 ${themeClasses.textPrimary}`}>Task Title</label>
+              <label className={`block text-sm font-medium mb-2 ${themeClasses.textPrimary}`}>
+                Task Title
+              </label>
               <input
                 type="text"
                 value={editedTask.title}
-                onChange={(e) => setEditedTask({ ...editedTask, title: e.target.value })}
+                onChange={e => setEditedTask({ ...editedTask, title: e.target.value })}
                 className={`w-full px-4 py-3 ${themeClasses.inputBg} border ${themeClasses.inputBorder} rounded-lg ${themeClasses.inputFocus} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all ${themeClasses.inputText}`}
               />
             </div>
 
             <div>
-              <label className={`block text-sm font-medium mb-2 ${themeClasses.textPrimary}`}>Description</label>
+              <label className={`block text-sm font-medium mb-2 ${themeClasses.textPrimary}`}>
+                Description
+              </label>
               <textarea
                 value={editedTask.description}
-                onChange={(e) => setEditedTask({ ...editedTask, description: e.target.value })}
+                onChange={e => setEditedTask({ ...editedTask, description: e.target.value })}
                 rows={4}
                 className={`w-full px-4 py-3 ${themeClasses.inputBg} border ${themeClasses.inputBorder} rounded-lg ${themeClasses.inputFocus} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all resize-none ${themeClasses.inputText}`}
               />
@@ -499,10 +526,17 @@ const ProDashboard = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className={`block text-sm font-medium mb-2 ${themeClasses.textPrimary}`}>Priority</label>
+                <label className={`block text-sm font-medium mb-2 ${themeClasses.textPrimary}`}>
+                  Priority
+                </label>
                 <select
                   value={editedTask.priority}
-                  onChange={(e) => setEditedTask({ ...editedTask, priority: e.target.value as 'LOW' | 'MEDIUM' | 'HIGH' })}
+                  onChange={e =>
+                    setEditedTask({
+                      ...editedTask,
+                      priority: e.target.value as 'LOW' | 'MEDIUM' | 'HIGH',
+                    })
+                  }
                   className={`w-full px-4 py-3 ${themeClasses.inputBg} border ${themeClasses.inputBorder} rounded-lg ${themeClasses.inputFocus} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all ${themeClasses.inputText}`}
                 >
                   <option value="LOW">Low</option>
@@ -512,17 +546,21 @@ const ProDashboard = () => {
               </div>
 
               <div>
-                <label className={`block text-sm font-medium mb-2 ${themeClasses.textPrimary}`}>Due Date</label>
+                <label className={`block text-sm font-medium mb-2 ${themeClasses.textPrimary}`}>
+                  Due Date
+                </label>
                 <input
                   type="date"
                   value={editedTask.due_date}
-                  onChange={(e) => setEditedTask({ ...editedTask, due_date: e.target.value })}
+                  onChange={e => setEditedTask({ ...editedTask, due_date: e.target.value })}
                   className={`w-full px-4 py-3 ${themeClasses.inputBg} border ${themeClasses.inputBorder} rounded-lg ${themeClasses.inputFocus} focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all ${themeClasses.inputText}`}
                 />
               </div>
 
               <div>
-                <label className={`block text-sm font-medium mb-2 ${themeClasses.textPrimary}`}>Tags</label>
+                <label className={`block text-sm font-medium mb-2 ${themeClasses.textPrimary}`}>
+                  Tags
+                </label>
                 <div className="flex flex-wrap gap-2 mb-2">
                   {task.tags?.map((tag, idx) => (
                     <span
@@ -545,7 +583,7 @@ const ProDashboard = () => {
                 <input
                   type="text"
                   placeholder="Add tag and press Enter"
-                  onKeyDown={(e) => {
+                  onKeyDown={e => {
                     if (e.key === 'Enter' && e.currentTarget.value.trim()) {
                       const newTag = e.currentTarget.value.trim()
                       const currentTags = task.tags || []
@@ -647,7 +685,9 @@ const ProDashboard = () => {
 
     return (
       <div className={`p-4 border-t ${themeClasses.divider}`}>
-        <h3 className={`text-sm font-semibold ${themeClasses.textSecondary} mb-3`}>Quick Actions</h3>
+        <h3 className={`text-sm font-semibold ${themeClasses.textSecondary} mb-3`}>
+          Quick Actions
+        </h3>
         <div className="space-y-2">
           <button
             onClick={() => handleQuickAction('today')}
@@ -656,7 +696,9 @@ const ProDashboard = () => {
             <div className="p-2 bg-blue-500/10 rounded-lg group-hover:bg-blue-500/20 transition-colors">
               <Calendar className="w-4 h-4 text-blue-400" />
             </div>
-            <span className={`text-sm font-medium ${themeClasses.textPrimary}`}>Add task for today</span>
+            <span className={`text-sm font-medium ${themeClasses.textPrimary}`}>
+              Add task for today
+            </span>
           </button>
           <button
             onClick={() => handleQuickAction('high-priority')}
@@ -665,7 +707,9 @@ const ProDashboard = () => {
             <div className="p-2 bg-red-500/10 rounded-lg group-hover:bg-red-500/20 transition-colors">
               <AlertCircle className="w-4 h-4 text-red-400" />
             </div>
-            <span className={`text-sm font-medium ${themeClasses.textPrimary}`}>Add high priority task</span>
+            <span className={`text-sm font-medium ${themeClasses.textPrimary}`}>
+              Add high priority task
+            </span>
           </button>
         </div>
       </div>
@@ -674,7 +718,9 @@ const ProDashboard = () => {
 
   if (!session?.user?.id) {
     return (
-      <div className={`flex h-screen items-center justify-center ${themeClasses.mainBg} ${themeClasses.textPrimary}`}>
+      <div
+        className={`flex h-screen items-center justify-center ${themeClasses.mainBg} ${themeClasses.textPrimary}`}
+      >
         <div className="text-center">
           <div className="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
           <p className={themeClasses.textSecondary}>Loading...</p>
@@ -684,7 +730,9 @@ const ProDashboard = () => {
   }
 
   return (
-    <div className={`flex h-screen overflow-hidden ${themeClasses.mainBg} ${themeClasses.textPrimary}`}>
+    <div
+      className={`flex h-screen overflow-hidden ${themeClasses.mainBg} ${themeClasses.textPrimary}`}
+    >
       {/* Sidebar */}
       <div
         className={`${sidebarOpen ? 'w-72' : 'w-0'} transition-all duration-300 ${themeClasses.sidebarBg} border-r ${themeClasses.border} flex flex-col overflow-hidden ${themeClasses.cardShadow}`}
@@ -712,15 +760,23 @@ const ProDashboard = () => {
               </span>
             </div>
             <div className="flex-1 text-left">
-              <p className={`text-sm font-semibold ${themeClasses.textPrimary}`}>{session.user.email.split('@')[0]}</p>
-              <p className={`text-xs ${themeClasses.textSecondary} truncate`}>{session.user.email}</p>
+              <p className={`text-sm font-semibold ${themeClasses.textPrimary}`}>
+                {session.user.email.split('@')[0]}
+              </p>
+              <p className={`text-xs ${themeClasses.textSecondary} truncate`}>
+                {session.user.email}
+              </p>
             </div>
-            <ChevronDown className={`w-4 h-4 ${themeClasses.textSecondary} transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown
+              className={`w-4 h-4 ${themeClasses.textSecondary} transition-transform ${userMenuOpen ? 'rotate-180' : ''}`}
+            />
           </button>
 
           {/* User Dropdown Menu */}
           {userMenuOpen && (
-            <div className={`absolute left-4 right-4 top-full mt-2 ${themeClasses.dropdownBg} border ${themeClasses.border} rounded-lg ${themeClasses.shadow} z-50 overflow-hidden`}>
+            <div
+              className={`absolute left-4 right-4 top-full mt-2 ${themeClasses.dropdownBg} border ${themeClasses.border} rounded-lg ${themeClasses.shadow} z-50 overflow-hidden`}
+            >
               <div className="p-2">
                 {/* Theme Toggle */}
                 <button
@@ -735,8 +791,12 @@ const ProDashboard = () => {
                   <span className={`text-sm font-medium ${themeClasses.textPrimary}`}>
                     {isDarkMode ? 'Light Mode' : 'Dark Mode'}
                   </span>
-                  <div className={`ml-auto w-8 h-4 rounded-full transition-colors ${isDarkMode ? 'bg-purple-500' : 'bg-slate-400'} relative`}>
-                    <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${isDarkMode ? 'left-4' : 'left-0.5'}`}></div>
+                  <div
+                    className={`ml-auto w-8 h-4 rounded-full transition-colors ${isDarkMode ? 'bg-purple-500' : 'bg-slate-400'} relative`}
+                  >
+                    <div
+                      className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all ${isDarkMode ? 'left-4' : 'left-0.5'}`}
+                    ></div>
                   </div>
                 </button>
 
@@ -749,7 +809,9 @@ const ProDashboard = () => {
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg ${themeClasses.dropdownHover} transition-colors text-left`}
                 >
                   <Settings className={`w-4 h-4 ${themeClasses.textSecondary}`} />
-                  <span className={`text-sm font-medium ${themeClasses.textPrimary}`}>Settings</span>
+                  <span className={`text-sm font-medium ${themeClasses.textPrimary}`}>
+                    Settings
+                  </span>
                 </button>
 
                 <div className={`my-2 border-t ${themeClasses.divider}`}></div>
@@ -780,7 +842,9 @@ const ProDashboard = () => {
               <LayoutDashboard className="w-5 h-5" />
               <span className="font-medium">All Tasks</span>
             </div>
-            <span className={`px-2 py-1 text-xs rounded-full ${themeClasses.buttonSecondary} ${themeClasses.textSecondary}`}>
+            <span
+              className={`px-2 py-1 text-xs rounded-full ${themeClasses.buttonSecondary} ${themeClasses.textSecondary}`}
+            >
               {stats.total}
             </span>
           </button>
@@ -797,13 +861,17 @@ const ProDashboard = () => {
               <Calendar className="w-5 h-5" />
               <span className="font-medium">Today</span>
             </div>
-            <span className={`px-2 py-1 text-xs rounded-full ${themeClasses.buttonSecondary} ${themeClasses.textSecondary}`}>
-              {tasks.filter(
-                (t) =>
-                  t.status === 'INCOMPLETE' &&
-                  t.due_date &&
-                  t.due_date.split('T')[0] === new Date().toISOString().split('T')[0]
-              ).length}
+            <span
+              className={`px-2 py-1 text-xs rounded-full ${themeClasses.buttonSecondary} ${themeClasses.textSecondary}`}
+            >
+              {
+                tasks.filter(
+                  t =>
+                    t.status === 'INCOMPLETE' &&
+                    t.due_date &&
+                    t.due_date.split('T')[0] === new Date().toISOString().split('T')[0]
+                ).length
+              }
             </span>
           </button>
 
@@ -833,7 +901,9 @@ const ProDashboard = () => {
               <CheckCircle2 className="w-5 h-5" />
               <span className="font-medium">Completed</span>
             </div>
-            <span className={`px-2 py-1 text-xs rounded-full ${themeClasses.buttonSecondary} ${themeClasses.textSecondary}`}>
+            <span
+              className={`px-2 py-1 text-xs rounded-full ${themeClasses.buttonSecondary} ${themeClasses.textSecondary}`}
+            >
               {stats.completed}
             </span>
           </button>
@@ -841,64 +911,92 @@ const ProDashboard = () => {
 
         {/* Priority Filters */}
         <div className={`px-4 pb-2 border-b ${themeClasses.divider}`}>
-          <h3 className={`text-xs font-semibold ${themeClasses.textSecondary} mb-3 uppercase`}>Priority</h3>
-          <div className="space-y-1">
-            <button
-              onClick={() => setSelectedPriorityFilter('HIGH')}
-              className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg transition-all ${
-                selectedPriorityFilter === 'HIGH'
-                  ? 'bg-red-500/10 text-red-400 border border-red-500/30'
-                  : `${themeClasses.cardHover} ${themeClasses.textPrimary}`
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${selectedPriorityFilter === 'HIGH' ? 'bg-red-400' : 'bg-slate-500'}`} />
-                <span className="text-sm font-medium">High</span>
-              </div>
-              <span className={`text-xs ${themeClasses.textSecondary}`}>{tasks.filter(t => t.priority === 'HIGH').length}</span>
-            </button>
-            <button
-              onClick={() => setSelectedPriorityFilter('MEDIUM')}
-              className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg transition-all ${
-                selectedPriorityFilter === 'MEDIUM'
-                  ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
-                  : `${themeClasses.cardHover} ${themeClasses.textPrimary}`
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${selectedPriorityFilter === 'MEDIUM' ? 'bg-amber-400' : 'bg-slate-500'}`} />
-                <span className="text-sm font-medium">Medium</span>
-              </div>
-              <span className={`text-xs ${themeClasses.textSecondary}`}>{tasks.filter(t => t.priority === 'MEDIUM').length}</span>
-            </button>
-            <button
-              onClick={() => setSelectedPriorityFilter('LOW')}
-              className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg transition-all ${
-                selectedPriorityFilter === 'LOW'
-                  ? 'bg-green-500/10 text-green-400 border border-green-500/30'
-                  : `${themeClasses.cardHover} ${themeClasses.textPrimary}`
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${selectedPriorityFilter === 'LOW' ? 'bg-green-400' : 'bg-slate-500'}`} />
-                <span className="text-sm font-medium">Low</span>
-              </div>
-              <span className={`text-xs ${themeClasses.textSecondary}`}>{tasks.filter(t => t.priority === 'LOW').length}</span>
-            </button>
-            <button
-              onClick={() => setSelectedPriorityFilter('all')}
-              className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg transition-all ${
-                selectedPriorityFilter === 'all'
-                  ? 'bg-purple-500/10 text-purple-400 border border-purple-500/30'
-                  : `${themeClasses.cardHover} ${themeClasses.textPrimary}`
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-purple-400" />
-                <span className="text-sm font-medium">All Priorities</span>
-              </div>
-            </button>
-          </div>
+          {/* Priority Menu Toggle */}
+          <button
+            onClick={() => setPriorityMenuOpen(!priorityMenuOpen)}
+            className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg transition-all mb-2 ${themeClasses.cardHover} ${themeClasses.textPrimary}`}
+          >
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4" />
+              <span className="text-sm font-semibold">Priority</span>
+            </div>
+            <ChevronDown
+              className={`w-4 h-4 transition-transform ${priorityMenuOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
+
+          {/* Priority Submenu */}
+          {priorityMenuOpen && (
+            <div className="space-y-1 pl-2">
+              <button
+                onClick={() => setSelectedPriorityFilter('HIGH')}
+                className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg transition-all ${
+                  selectedPriorityFilter === 'HIGH'
+                    ? 'bg-red-500/10 text-red-400 border border-red-500/30'
+                    : `${themeClasses.cardHover} ${themeClasses.textPrimary}`
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`w-2 h-2 rounded-full ${selectedPriorityFilter === 'HIGH' ? 'bg-red-400' : 'bg-slate-500'}`}
+                  />
+                  <span className="text-sm font-medium">High</span>
+                </div>
+                <span className={`text-xs ${themeClasses.textSecondary}`}>
+                  {tasks.filter(t => t.priority === 'HIGH').length}
+                </span>
+              </button>
+              <button
+                onClick={() => setSelectedPriorityFilter('MEDIUM')}
+                className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg transition-all ${
+                  selectedPriorityFilter === 'MEDIUM'
+                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                    : `${themeClasses.cardHover} ${themeClasses.textPrimary}`
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`w-2 h-2 rounded-full ${selectedPriorityFilter === 'MEDIUM' ? 'bg-amber-400' : 'bg-slate-500'}`}
+                  />
+                  <span className="text-sm font-medium">Medium</span>
+                </div>
+                <span className={`text-xs ${themeClasses.textSecondary}`}>
+                  {tasks.filter(t => t.priority === 'MEDIUM').length}
+                </span>
+              </button>
+              <button
+                onClick={() => setSelectedPriorityFilter('LOW')}
+                className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg transition-all ${
+                  selectedPriorityFilter === 'LOW'
+                    ? 'bg-green-500/10 text-green-400 border border-green-500/30'
+                    : `${themeClasses.cardHover} ${themeClasses.textPrimary}`
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`w-2 h-2 rounded-full ${selectedPriorityFilter === 'LOW' ? 'bg-green-400' : 'bg-slate-500'}`}
+                  />
+                  <span className="text-sm font-medium">Low</span>
+                </div>
+                <span className={`text-xs ${themeClasses.textSecondary}`}>
+                  {tasks.filter(t => t.priority === 'LOW').length}
+                </span>
+              </button>
+              <button
+                onClick={() => setSelectedPriorityFilter('all')}
+                className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg transition-all ${
+                  selectedPriorityFilter === 'all'
+                    ? 'bg-purple-500/10 text-purple-400 border border-purple-500/30'
+                    : `${themeClasses.cardHover} ${themeClasses.textPrimary}`
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-purple-400" />
+                  <span className="text-sm font-medium">All Priorities</span>
+                </div>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Tag Filters */}
@@ -908,7 +1006,9 @@ const ProDashboard = () => {
 
           return (
             <div className={`px-4 pb-2 border-b ${themeClasses.divider}`}>
-              <h3 className={`text-xs font-semibold ${themeClasses.textSecondary} mb-3 uppercase`}>Tags</h3>
+              <h3 className={`text-xs font-semibold ${themeClasses.textSecondary} mb-3 uppercase`}>
+                Tags
+              </h3>
               <div className="space-y-1">
                 <button
                   onClick={() => setSelectedTagFilter('all')}
@@ -933,13 +1033,13 @@ const ProDashboard = () => {
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      <span
-                        className="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded-full"
-                      >
+                      <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded-full">
                         {tag}
                       </span>
                     </div>
-                    <span className={`text-xs ${themeClasses.textSecondary}`}>{tasks.filter(t => t.tags?.includes(tag)).length}</span>
+                    <span className={`text-xs ${themeClasses.textSecondary}`}>
+                      {tasks.filter(t => t.tags?.includes(tag)).length}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -949,9 +1049,13 @@ const ProDashboard = () => {
 
         <div className={`p-4 border-t ${themeClasses.divider}`}>
           <div className="p-4 rounded-lg bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20">
-            <p className={`text-sm font-semibold mb-2 ${themeClasses.textPrimary}`}>Progress Today</p>
+            <p className={`text-sm font-semibold mb-2 ${themeClasses.textPrimary}`}>
+              Progress Today
+            </p>
             <div className="flex items-center gap-2 mb-2">
-              <div className={`flex-1 h-2 ${themeClasses.buttonSecondary} rounded-full overflow-hidden`}>
+              <div
+                className={`flex-1 h-2 ${themeClasses.buttonSecondary} rounded-full overflow-hidden`}
+              >
                 <div
                   className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all"
                   style={{
@@ -973,7 +1077,9 @@ const ProDashboard = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className={`${themeClasses.headerBg} backdrop-blur-xl border-b ${themeClasses.border} p-6 ${themeClasses.cardShadow}`}>
+        <header
+          className={`${themeClasses.headerBg} backdrop-blur-xl border-b ${themeClasses.border} p-6 ${themeClasses.cardShadow}`}
+        >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
               <button
@@ -986,11 +1092,15 @@ const ProDashboard = () => {
                 <h2 className="text-2xl font-bold capitalize bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                   {selectedFilter === 'all' ? 'All Tasks' : selectedFilter}
                 </h2>
-                <p className={`text-sm ${themeClasses.textSecondary}`}>Manage your tasks with style</p>
+                <p className={`text-sm ${themeClasses.textSecondary}`}>
+                  Manage your tasks with style
+                </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <button className={`p-2 ${themeClasses.cardHover} rounded-lg transition-colors relative ${themeClasses.textPrimary}`}>
+            <div className="flex items-center" gap-3>
+              <button
+                className={`p-2 ${themeClasses.cardHover} rounded-lg transition-colors relative ${themeClasses.textPrimary}`}
+              >
                 <Bell className="w-5 h-5" />
                 {stats.overdue > 0 && (
                   <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
@@ -1001,21 +1111,27 @@ const ProDashboard = () => {
 
           <div className="flex items-center gap-3">
             <div className="flex-1 relative">
-              <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${themeClasses.textSecondary}`} />
+              <Search
+                className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${themeClasses.textSecondary}`}
+              />
               <input
                 type="text"
                 placeholder="Search tasks..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={e => setSearchQuery(e.target.value)}
                 className={`w-full pl-12 pr-4 py-3 ${themeClasses.inputBg} border ${themeClasses.inputBorder} rounded-lg ${themeClasses.inputFocus} focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-all ${themeClasses.inputText}`}
               />
             </div>
 
-            <div className={`flex items-center gap-2 p-1 ${themeClasses.buttonSecondary} rounded-lg border ${themeClasses.cardBorder}`}>
+            <div
+              className={`flex items-center gap-2 p-1 ${themeClasses.buttonSecondary} rounded-lg border ${themeClasses.cardBorder}`}
+            >
               <button
                 onClick={() => setViewMode('list')}
                 className={`p-2 rounded transition-all ${
-                  viewMode === 'list' ? 'bg-purple-500 text-white' : `${themeClasses.textSecondary} hover:${themeClasses.textPrimary}`
+                  viewMode === 'list'
+                    ? 'bg-purple-500 text-white'
+                    : `${themeClasses.textSecondary} hover:${themeClasses.textPrimary}`
                 }`}
               >
                 <List className="w-5 h-5" />
@@ -1023,7 +1139,9 @@ const ProDashboard = () => {
               <button
                 onClick={() => setViewMode('grid')}
                 className={`p-2 rounded transition-all ${
-                  viewMode === 'grid' ? 'bg-purple-500 text-white' : `${themeClasses.textSecondary} hover:${themeClasses.textPrimary}`
+                  viewMode === 'grid'
+                    ? 'bg-purple-500 text-white'
+                    : `${themeClasses.textSecondary} hover:${themeClasses.textPrimary}`
                 }`}
               >
                 <Grid3x3 className="w-5 h-5" />
@@ -1034,12 +1152,18 @@ const ProDashboard = () => {
             <div className="relative">
               <select
                 value={sortField}
-                onChange={(e) => setSortField(e.target.value as 'due_date' | 'priority' | 'title')}
+                onChange={e => setSortField(e.target.value as 'due_date' | 'priority' | 'title')}
                 className={`${themeClasses.buttonSecondary} border ${themeClasses.cardBorder} rounded-lg px-4 py-3 ${themeClasses.textPrimary} transition-all focus:outline-none focus:border-purple-500 cursor-pointer`}
               >
-                <option value="due_date" className="bg-gray-900">Sort by Due Date</option>
-                <option value="priority" className="bg-gray-900">Sort by Priority</option>
-                <option value="title" className="bg-gray-900">Sort by Title</option>
+                <option value="due_date" className="bg-gray-900">
+                  Sort by Due Date
+                </option>
+                <option value="priority" className="bg-gray-900">
+                  Sort by Priority
+                </option>
+                <option value="title" className="bg-gray-900">
+                  Sort by Title
+                </option>
               </select>
             </div>
 
@@ -1049,13 +1173,17 @@ const ProDashboard = () => {
               className={`p-3 ${themeClasses.buttonSecondary} border ${themeClasses.cardBorder} rounded-lg transition-all ${themeClasses.textPrimary}`}
               title={`Sort ${sortOrder === 'asc' ? 'Descending' : 'Ascending'}`}
             >
-              {sortOrder === 'asc' ? <TrendingUp className="w-5 h-5" /> : <TrendingUp className="w-5 h-5 rotate-180" />}
+              {sortOrder === 'asc' ? (
+                <TrendingUp className="w-5 h-5" />
+              ) : (
+                <TrendingUp className="w-5 h-5 rotate-180" />
+              )}
             </button>
 
             {/* Advanced Filters Button */}
             <div className="relative">
               <button
-                onClick={(e) => {
+                onClick={e => {
                   e.stopPropagation()
                   const filterMenu = document.getElementById('advanced-filter-menu')
                   filterMenu?.classList.toggle('hidden')
@@ -1068,23 +1196,35 @@ const ProDashboard = () => {
                 id="advanced-filter-menu"
                 className="hidden absolute right-0 top-full mt-2 z-50 w-64"
               >
-                <div className={`${themeClasses.dropdownBg} border ${themeClasses.border} rounded-lg ${themeClasses.shadow} overflow-hidden`}>
+                <div
+                  className={`${themeClasses.dropdownBg} border ${themeClasses.border} rounded-lg ${themeClasses.shadow} overflow-hidden`}
+                >
                   <div className="p-2">
                     <button
-                      onClick={() => { setSelectedPriorityFilter('all'); document.getElementById('advanced-filter-menu')?.classList.add('hidden') }}
+                      onClick={() => {
+                        setSelectedPriorityFilter('all')
+                        document.getElementById('advanced-filter-menu')?.classList.add('hidden')
+                      }}
                       className={`w-full px-3 py-2 rounded-lg ${themeClasses.dropdownHover} text-left text-sm ${themeClasses.textPrimary}`}
                     >
                       Clear Priority Filter
                     </button>
                     <button
-                      onClick={() => { setSelectedTagFilter('all'); document.getElementById('advanced-filter-menu')?.classList.add('hidden') }}
+                      onClick={() => {
+                        setSelectedTagFilter('all')
+                        document.getElementById('advanced-filter-menu')?.classList.add('hidden')
+                      }}
                       className={`w-full px-3 py-2 rounded-lg ${themeClasses.dropdownHover} text-left text-sm ${themeClasses.textPrimary}`}
                     >
                       Clear Tag Filter
                     </button>
                     {(selectedPriorityFilter !== 'all' || selectedTagFilter !== 'all') && (
                       <button
-                        onClick={() => { setSelectedPriorityFilter('all'); setSelectedTagFilter('all'); document.getElementById('advanced-filter-menu')?.classList.add('hidden') }}
+                        onClick={() => {
+                          setSelectedPriorityFilter('all')
+                          setSelectedTagFilter('all')
+                          document.getElementById('advanced-filter-menu')?.classList.add('hidden')
+                        }}
                         className={`w-full px-3 py-2 rounded-lg hover:bg-purple-500/10 text-left text-sm text-purple-400 font-medium`}
                       >
                         Clear All Filters
@@ -1107,7 +1247,14 @@ const ProDashboard = () => {
 
         {/* Stats Cards */}
         <div className="p-6 grid grid-cols-4 gap-4">
-          <div className={`p-5 rounded-xl ${themeClasses.statCardBg} border ${themeClasses.statCardBorder} ${themeClasses.statCardHover} ${themeClasses.cardShadow} transition-all group`}>
+          {/* Active Tasks - Light Purple */}
+          <div
+            className={`p-5 rounded-xl ${
+              isDarkMode ? themeClasses.statCardBg : 'bg-purple-50/50'
+            } border ${themeClasses.statCardBorder} ${
+              isDarkMode ? themeClasses.statCardHover : 'hover:shadow-lg hover:shadow-purple-200/40'
+            } ${themeClasses.cardShadow} transition-all group`}
+          >
             <div className="flex items-start justify-between mb-3">
               <div className="p-3 bg-purple-500/10 rounded-lg group-hover:bg-purple-500/20 transition-colors">
                 <Target className="w-6 h-6 text-purple-400" />
@@ -1118,29 +1265,54 @@ const ProDashboard = () => {
             <p className={`text-sm ${themeClasses.textSecondary}`}>Active Tasks</p>
           </div>
 
-          <div className={`p-5 rounded-xl ${themeClasses.statCardBg} border ${themeClasses.statCardBorder} hover:border-green-500/30 ${themeClasses.cardShadow} transition-all group`}>
+          {/* Completed - Light Green */}
+          <div
+            className={`p-5 rounded-xl ${
+              isDarkMode ? themeClasses.statCardBg : 'bg-green-50/50'
+            } border ${themeClasses.statCardBorder} ${
+              isDarkMode ? 'hover:border-green-500/30' : 'hover:shadow-lg hover:shadow-green-200/40'
+            } ${themeClasses.cardShadow} transition-all group`}
+          >
             <div className="flex items-start justify-between mb-3">
               <div className="p-3 bg-green-500/10 rounded-lg group-hover:bg-green-500/20 transition-colors">
                 <CheckCircle2 className="w-6 h-6 text-green-400" />
               </div>
               <Zap className="w-4 h-4 text-green-400" />
             </div>
-            <p className={`text-3xl font-bold mb-1 ${themeClasses.textPrimary}`}>{stats.completed}</p>
+            <p className={`text-3xl font-bold mb-1 ${themeClasses.textPrimary}`}>
+              {stats.completed}
+            </p>
             <p className={`text-sm ${themeClasses.textSecondary}`}>Completed</p>
           </div>
 
-          <div className={`p-5 rounded-xl ${themeClasses.statCardBg} border ${themeClasses.statCardBorder} hover:border-amber-500/30 ${themeClasses.cardShadow} transition-all group`}>
+          {/* In Progress - Light Yellow */}
+          <div
+            className={`p-5 rounded-xl ${
+              isDarkMode ? themeClasses.statCardBg : 'bg-amber-50/50'
+            } border ${themeClasses.statCardBorder} ${
+              isDarkMode ? 'hover:border-amber-500/30' : 'hover:shadow-lg hover:shadow-amber-200/40'
+            } ${themeClasses.cardShadow} transition-all group`}
+          >
             <div className="flex items-start justify-between mb-3">
               <div className="p-3 bg-amber-500/10 rounded-lg group-hover:bg-amber-500/20 transition-colors">
                 <Clock className="w-6 h-6 text-amber-400" />
               </div>
               <TrendingUp className="w-4 h-4 text-green-400" />
             </div>
-            <p className={`text-3xl font-bold mb-1 ${themeClasses.textPrimary}`}>{stats.inProgress}</p>
+            <p className={`text-3xl font-bold mb-1 ${themeClasses.textPrimary}`}>
+              {stats.inProgress}
+            </p>
             <p className={`text-sm ${themeClasses.textSecondary}`}>In Progress</p>
           </div>
 
-          <div className={`p-5 rounded-xl ${themeClasses.statCardBg} border ${themeClasses.statCardBorder} hover:border-red-500/30 ${themeClasses.cardShadow} transition-all group`}>
+          {/* Overdue - Light Pink */}
+          <div
+            className={`p-5 rounded-xl ${
+              isDarkMode ? themeClasses.statCardBg : 'bg-rose-50/50'
+            } border ${themeClasses.statCardBorder} ${
+              isDarkMode ? 'hover:border-red-500/30' : 'hover:shadow-lg hover:shadow-rose-200/40'
+            } ${themeClasses.cardShadow} transition-all group`}
+          >
             <div className="flex items-start justify-between mb-3">
               <div className="p-3 bg-red-500/10 rounded-lg group-hover:bg-red-500/20 transition-colors">
                 <AlertCircle className="w-6 h-6 text-red-400" />
@@ -1160,15 +1332,15 @@ const ProDashboard = () => {
             </div>
           ) : viewMode === 'list' ? (
             <div className="space-y-3">
-              {filteredTasks.map((task) => (
+              {filteredTasks.map(task => (
                 <div
                   key={task.id}
-                  className={`group p-4 rounded-xl ${themeClasses.taskCard} border ${themeClasses.taskCardBorder} ${themeClasses.taskCardHover} ${themeClasses.cardShadow} transition-all cursor-pointer`}
+                  className={`group px-4 py-3 rounded-xl ${themeClasses.taskCard} border ${themeClasses.taskCardBorder} ${themeClasses.taskCardHover} ${themeClasses.cardShadow} transition-all cursor-pointer`}
                   onClick={() => openTaskDetail(task)}
                 >
                   <div className="flex items-center gap-4">
                     <button
-                      onClick={(e) => {
+                      onClick={e => {
                         e.stopPropagation()
                         toggleComplete(task.id)
                       }}
@@ -1177,7 +1349,9 @@ const ProDashboard = () => {
                       {task.status === 'COMPLETE' ? (
                         <CheckCircle2 className="w-6 h-6 text-green-400" />
                       ) : (
-                        <Circle className={`w-6 h-6 ${themeClasses.textMuted} hover:text-purple-400 transition-colors`} />
+                        <Circle
+                          className={`w-6 h-6 ${themeClasses.textMuted} hover:text-purple-400 transition-colors`}
+                        />
                       )}
                     </button>
 
@@ -1216,7 +1390,9 @@ const ProDashboard = () => {
                       {task.priority}
                     </span>
 
-                    <div className={`flex items-center gap-2 text-sm ${themeClasses.textSecondary}`}>
+                    <div
+                      className={`flex items-center gap-2 text-sm ${themeClasses.textSecondary}`}
+                    >
                       <Calendar className="w-4 h-4" />
                       {formatDueDate(task.due_date)}
                     </div>
@@ -1228,7 +1404,7 @@ const ProDashboard = () => {
 
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
-                        onClick={(e) => {
+                        onClick={e => {
                           e.stopPropagation()
                           setTaskToEdit(task)
                           setShowEditModal(true)
@@ -1238,7 +1414,7 @@ const ProDashboard = () => {
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={(e) => {
+                        onClick={e => {
                           e.stopPropagation()
                           deleteTask(task.id)
                         }}
@@ -1253,15 +1429,15 @@ const ProDashboard = () => {
             </div>
           ) : (
             <div className="grid grid-cols-3 gap-4">
-              {filteredTasks.map((task) => (
+              {filteredTasks.map(task => (
                 <div
                   key={task.id}
-                  className={`group p-5 rounded-xl ${themeClasses.taskCard} border ${themeClasses.taskCardBorder} ${themeClasses.taskCardHover} ${themeClasses.cardShadow} transition-all cursor-pointer`}
+                  className={`group px-5 py-3 rounded-xl ${themeClasses.taskCard} border ${themeClasses.taskCardBorder} ${themeClasses.taskCardHover} ${themeClasses.cardShadow} transition-all cursor-pointer`}
                   onClick={() => openTaskDetail(task)}
                 >
                   <div className="flex items-start justify-between mb-4">
                     <button
-                      onClick={(e) => {
+                      onClick={e => {
                         e.stopPropagation()
                         toggleComplete(task.id)
                       }}
@@ -1269,12 +1445,12 @@ const ProDashboard = () => {
                       {task.status === 'COMPLETE' ? (
                         <CheckCircle2 className="w-6 h-6 text-green-400" />
                       ) : (
-                        <Circle className={`w-6 h-6 ${themeClasses.textMuted} hover:text-purple-400 transition-colors`} />
+                        <Circle
+                          className={`w-6 h-6 ${themeClasses.textMuted} hover:text-purple-400 transition-colors`}
+                        />
                       )}
                     </button>
-                    <div
-                      className={`w-3 h-3 rounded-full ${getPriorityDot(task.priority)}`}
-                    ></div>
+                    <div className={`w-3 h-3 rounded-full ${getPriorityDot(task.priority)}`}></div>
                   </div>
 
                   <h3
@@ -1312,9 +1488,16 @@ const ProDashboard = () => {
                     >
                       {task.priority}
                     </span>
-                    <div className={`flex items-center gap-1 text-xs ${themeClasses.textSecondary}`}>
+                    <div
+                      className={`flex items-center gap-1 text-xs ${themeClasses.textSecondary}`}
+                    >
                       <Calendar className="w-3 h-3" />
-                      {task.due_date ? new Date(task.due_date).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' }) : 'No date'}
+                      {task.due_date
+                        ? new Date(task.due_date).toLocaleDateString('en-US', {
+                            month: 'numeric',
+                            day: 'numeric',
+                          })
+                        : 'No date'}
                     </div>
                   </div>
                 </div>
@@ -1325,7 +1508,9 @@ const ProDashboard = () => {
           {!isLoading && filteredTasks.length === 0 && (
             <div className="flex flex-col items-center justify-center h-64 text-center">
               <CheckCircle2 className={`w-16 h-16 ${themeClasses.textMuted} mb-4`} />
-              <h3 className={`text-xl font-semibold mb-2 ${themeClasses.textPrimary}`}>No tasks found</h3>
+              <h3 className={`text-xl font-semibold mb-2 ${themeClasses.textPrimary}`}>
+                No tasks found
+              </h3>
               <p className={themeClasses.textSecondary}>Create a new task to get started</p>
             </div>
           )}
@@ -1334,9 +1519,15 @@ const ProDashboard = () => {
 
       {/* Add Task Modal */}
       {showAddModal && (
-        <div className={`fixed inset-0 ${themeClasses.modalBackdrop} backdrop-blur-sm flex items-center justify-center z-50 p-4`}>
-          <div className={`${themeClasses.modalBg} rounded-2xl border ${themeClasses.modalBorder} w-full max-w-lg ${themeClasses.shadowLg}`}>
-            <div className={`flex items-center justify-between p-6 border-b ${themeClasses.divider}`}>
+        <div
+          className={`fixed inset-0 ${themeClasses.modalBackdrop} backdrop-blur-sm flex items-center justify-center z-50 p-4`}
+        >
+          <div
+            className={`${themeClasses.modalBg} rounded-2xl border ${themeClasses.modalBorder} w-full max-w-lg ${themeClasses.shadowLg}`}
+          >
+            <div
+              className={`flex items-center justify-between p-6 border-b ${themeClasses.divider}`}
+            >
               <h3 className={`text-xl font-bold ${themeClasses.textPrimary}`}>Create New Task</h3>
               <button
                 onClick={() => setShowAddModal(false)}
@@ -1348,21 +1539,25 @@ const ProDashboard = () => {
 
             <div className="p-6 space-y-4">
               <div>
-                <label className={`block text-sm font-medium mb-2 ${themeClasses.textPrimary}`}>Task Title</label>
+                <label className={`block text-sm font-medium mb-2 ${themeClasses.textPrimary}`}>
+                  Task Title
+                </label>
                 <input
                   type="text"
                   value={newTask.title}
-                  onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+                  onChange={e => setNewTask({ ...newTask, title: e.target.value })}
                   placeholder="Enter task title..."
                   className={`w-full px-4 py-3 ${themeClasses.inputBg} border ${themeClasses.inputBorder} rounded-lg ${themeClasses.inputFocus} focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-all ${themeClasses.inputText}`}
                 />
               </div>
 
               <div>
-                <label className={`block text-sm font-medium mb-2 ${themeClasses.textPrimary}`}>Description</label>
+                <label className={`block text-sm font-medium mb-2 ${themeClasses.textPrimary}`}>
+                  Description
+                </label>
                 <textarea
                   value={newTask.description}
-                  onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                  onChange={e => setNewTask({ ...newTask, description: e.target.value })}
                   placeholder="Enter task description..."
                   rows={3}
                   className={`w-full px-4 py-3 ${themeClasses.inputBg} border ${themeClasses.inputBorder} rounded-lg ${themeClasses.inputFocus} focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-all resize-none ${themeClasses.inputText}`}
@@ -1371,11 +1566,16 @@ const ProDashboard = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className={`block text-sm font-medium mb-2 ${themeClasses.textPrimary}`}>Priority</label>
+                  <label className={`block text-sm font-medium mb-2 ${themeClasses.textPrimary}`}>
+                    Priority
+                  </label>
                   <select
                     value={newTask.priority}
-                    onChange={(e) =>
-                      setNewTask({ ...newTask, priority: e.target.value as 'LOW' | 'MEDIUM' | 'HIGH' })
+                    onChange={e =>
+                      setNewTask({
+                        ...newTask,
+                        priority: e.target.value as 'LOW' | 'MEDIUM' | 'HIGH',
+                      })
                     }
                     className={`w-full px-4 py-3 ${themeClasses.inputBg} border ${themeClasses.inputBorder} rounded-lg ${themeClasses.inputFocus} focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-all ${themeClasses.inputText}`}
                   >
@@ -1386,18 +1586,22 @@ const ProDashboard = () => {
                 </div>
 
                 <div>
-                  <label className={`block text-sm font-medium mb-2 ${themeClasses.textPrimary}`}>Due Date</label>
+                  <label className={`block text-sm font-medium mb-2 ${themeClasses.textPrimary}`}>
+                    Due Date
+                  </label>
                   <input
                     type="date"
                     value={newTask.due_date}
-                    onChange={(e) => setNewTask({ ...newTask, due_date: e.target.value })}
+                    onChange={e => setNewTask({ ...newTask, due_date: e.target.value })}
                     className={`w-full px-4 py-3 ${themeClasses.inputBg} border ${themeClasses.inputBorder} rounded-lg ${themeClasses.inputFocus} focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-all ${themeClasses.inputText}`}
                   />
                 </div>
               </div>
 
               <div>
-                <label className={`block text-sm font-medium mb-2 ${themeClasses.textPrimary}`}>Tags</label>
+                <label className={`block text-sm font-medium mb-2 ${themeClasses.textPrimary}`}>
+                  Tags
+                </label>
                 <div className="flex flex-wrap gap-2 mb-2">
                   {newTask.tags.map((tag, idx) => (
                     <span
@@ -1420,7 +1624,7 @@ const ProDashboard = () => {
                 <input
                   type="text"
                   placeholder="Add tag and press Enter"
-                  onKeyDown={(e) => {
+                  onKeyDown={e => {
                     if (e.key === 'Enter' && e.currentTarget.value.trim()) {
                       const newTag = e.currentTarget.value.trim()
                       if (!newTask.tags.includes(newTag)) {
@@ -1472,11 +1676,13 @@ const ProDashboard = () => {
         >
           <div
             className={`w-full max-w-md ${themeClasses.modalBg} border-l ${themeClasses.modalBorder} ${themeClasses.shadowLg} overflow-y-auto`}
-            onClick={(e) => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
           >
             <div className={`p-6 border-b ${themeClasses.divider}`}>
               <div className="flex items-start justify-between mb-4">
-                <h3 className={`text-2xl font-bold ${themeClasses.textPrimary}`}>{selectedTask.title}</h3>
+                <h3 className={`text-2xl font-bold ${themeClasses.textPrimary}`}>
+                  {selectedTask.title}
+                </h3>
                 <button
                   onClick={() => setShowTaskDrawer(false)}
                   className={`p-2 ${themeClasses.cardHover} rounded-lg transition-colors ${themeClasses.textPrimary}`}
@@ -1504,12 +1710,18 @@ const ProDashboard = () => {
 
             <div className="p-6 space-y-6">
               <div>
-                <h4 className={`text-sm font-semibold ${themeClasses.textSecondary} mb-2`}>Description</h4>
-                <p className={themeClasses.textPrimary}>{selectedTask.description || 'No description'}</p>
+                <h4 className={`text-sm font-semibold ${themeClasses.textSecondary} mb-2`}>
+                  Description
+                </h4>
+                <p className={themeClasses.textPrimary}>
+                  {selectedTask.description || 'No description'}
+                </p>
               </div>
 
               <div>
-                <h4 className={`text-sm font-semibold ${themeClasses.textSecondary} mb-2`}>Due Date</h4>
+                <h4 className={`text-sm font-semibold ${themeClasses.textSecondary} mb-2`}>
+                  Due Date
+                </h4>
                 <div className={`flex items-center gap-2 ${themeClasses.textPrimary}`}>
                   <Calendar className="w-4 h-4" />
                   {formatDueDate(selectedTask.due_date)}
@@ -1518,7 +1730,9 @@ const ProDashboard = () => {
 
               {selectedTask.tags && selectedTask.tags.length > 0 && (
                 <div>
-                  <h4 className={`text-sm font-semibold ${themeClasses.textSecondary} mb-2`}>Tags</h4>
+                  <h4 className={`text-sm font-semibold ${themeClasses.textSecondary} mb-2`}>
+                    Tags
+                  </h4>
                   <div className="flex flex-wrap gap-2">
                     {selectedTask.tags.map((tag, idx) => (
                       <span
@@ -1533,7 +1747,9 @@ const ProDashboard = () => {
               )}
 
               <div>
-                <h4 className={`text-sm font-semibold ${themeClasses.textSecondary} mb-2`}>Status Indicators</h4>
+                <h4 className={`text-sm font-semibold ${themeClasses.textSecondary} mb-2`}>
+                  Status Indicators
+                </h4>
                 <div className="flex flex-col gap-2">
                   <OverdueBadge dueDate={selectedTask.due_date} />
                   <DueSoonBadge dueDate={selectedTask.due_date} />
@@ -1541,7 +1757,9 @@ const ProDashboard = () => {
               </div>
 
               <div>
-                <h4 className={`text-sm font-semibold ${themeClasses.textSecondary} mb-2`}>Created</h4>
+                <h4 className={`text-sm font-semibold ${themeClasses.textSecondary} mb-2`}>
+                  Created
+                </h4>
                 <p className={themeClasses.textPrimary}>
                   {new Date(selectedTask.created_at).toLocaleDateString('en-US', {
                     month: 'long',
