@@ -111,7 +111,6 @@ export function TaskCard({ task, index = 0, onClick, onDelete, onToggleStatus, o
       }}
       {...cardInteraction}
       layout
-      layoutTransition={layoutTransition}
       onClick={onClick}
       className={`
         group
