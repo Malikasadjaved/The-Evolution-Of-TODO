@@ -70,7 +70,9 @@ export default function DashboardPage() {
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | null>(null)
 
   // Priority-based filtering (similar to calendar filter)
-  const [selectedPriorityFilter, setSelectedPriorityFilter] = useState<'HIGH' | 'MEDIUM' | 'LOW' | null>(null)
+  const [selectedPriorityFilter, setSelectedPriorityFilter] = useState<
+    'HIGH' | 'MEDIUM' | 'LOW' | null
+  >(null)
 
   // Real-time relative time updates (every minute)
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -163,9 +165,12 @@ export default function DashboardPage() {
     checkUpcomingDeadlines(tasks)
 
     // Set up interval (5 minutes = 300,000ms)
-    const interval = setInterval(() => {
-      checkUpcomingDeadlines(tasks)
-    }, 5 * 60 * 1000)
+    const interval = setInterval(
+      () => {
+        checkUpcomingDeadlines(tasks)
+      },
+      5 * 60 * 1000
+    )
 
     return () => clearInterval(interval)
   }, [isAuthenticated, tasks, checkUpcomingDeadlines])
@@ -219,8 +224,7 @@ export default function DashboardPage() {
       setIsDeleteDialogOpen(false)
       setTaskToDelete(undefined)
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to delete task'
+      const message = error instanceof Error ? error.message : 'Failed to delete task'
       toast.error(message)
     }
   }
@@ -246,10 +250,7 @@ export default function DashboardPage() {
   }
 
   // Handler: Toggle task status (complete/incomplete)
-  const handleToggleStatus = async (
-    taskId: number,
-    status: 'COMPLETE' | 'INCOMPLETE'
-  ) => {
+  const handleToggleStatus = async (taskId: number, status: 'COMPLETE' | 'INCOMPLETE') => {
     if (!user) return
 
     try {
@@ -259,8 +260,7 @@ export default function DashboardPage() {
         status,
       })
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to update task status'
+      const message = error instanceof Error ? error.message : 'Failed to update task status'
       toast.error(message)
     }
   }
@@ -276,7 +276,7 @@ export default function DashboardPage() {
 
   // Handler: Open chatbox programmatically
   const handleOpenChatBox = () => {
-    setIsChatBoxOpen((prev) => !prev)
+    setIsChatBoxOpen(prev => !prev)
   }
 
   // Handler: ChatBox toggle callback
@@ -361,7 +361,7 @@ export default function DashboardPage() {
   // All filtering now handled by backend (search, status, priority, tags)
   // PLUS client-side calendar date filtering (PROMPT 4 enhancement)
   // PLUS client-side priority filtering (similar to calendar filter)
-  const filteredTasks = tasks?.filter((task) => {
+  const filteredTasks = tasks?.filter(task => {
     // Priority filter (if active)
     if (selectedPriorityFilter && task.priority !== selectedPriorityFilter) {
       return false
@@ -388,32 +388,27 @@ export default function DashboardPage() {
   })
 
   // Group tasks by status
-  const incompleteTasks = filteredTasks?.filter(
-    (task) => task.status === 'INCOMPLETE'
-  )
-  const completeTasks = filteredTasks?.filter(
-    (task) => task.status === 'COMPLETE'
-  )
+  const incompleteTasks = filteredTasks?.filter(task => task.status === 'INCOMPLETE')
+  const completeTasks = filteredTasks?.filter(task => task.status === 'COMPLETE')
 
   // Get unique tags from all tasks
-  const allTags = Array.from(
-    new Set((tasks || []).flatMap((task) => task.tags || []))
-  )
+  const allTags = Array.from(new Set((tasks || []).flatMap(task => task.tags || [])))
 
   // Calculate productivity stats
   const totalTasks = filteredTasks?.length || 0
-  const completedToday = filteredTasks?.filter(
-    (task) =>
-      task.status === 'COMPLETE' &&
-      task.updated_at &&
-      new Date(task.updated_at).toDateString() === new Date().toDateString()
-  ).length || 0
+  const completedToday =
+    filteredTasks?.filter(
+      task =>
+        task.status === 'COMPLETE' &&
+        task.updated_at &&
+        new Date(task.updated_at).toDateString() === new Date().toDateString()
+    ).length || 0
   const completionRate =
-    totalTasks > 0 ? Math.round((completeTasks?.length || 0) / totalTasks * 100) : 0
+    totalTasks > 0 ? Math.round(((completeTasks?.length || 0) / totalTasks) * 100) : 0
 
   // Get upcoming deadlines (incomplete tasks with due dates)
   const upcomingDeadlines = (filteredTasks || [])
-    .filter((task) => task.due_date && task.status !== 'COMPLETE')
+    .filter(task => task.due_date && task.status !== 'COMPLETE')
     .sort((a, b) => {
       const dateA = new Date(a.due_date!).getTime()
       const dateB = new Date(b.due_date!).getTime()
@@ -519,8 +514,14 @@ export default function DashboardPage() {
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {/* Gradient Mesh - Animated Floating Orbs */}
         <div className="absolute top-20 left-10 w-96 h-96 bg-blue-500/20 dark:bg-blue-500/20 light:bg-blue-400/15 rounded-full blur-3xl animate-floating-orbs" />
-        <div className="absolute bottom-20 right-10 w-80 h-80 bg-cyan-500/15 dark:bg-cyan-500/15 light:bg-cyan-400/10 rounded-full blur-3xl animate-floating-orbs" style={{ animationDelay: '2s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-500/10 dark:bg-purple-500/10 light:bg-purple-400/8 rounded-full blur-3xl animate-floating-orbs" style={{ animationDelay: '4s' }} />
+        <div
+          className="absolute bottom-20 right-10 w-80 h-80 bg-cyan-500/15 dark:bg-cyan-500/15 light:bg-cyan-400/10 rounded-full blur-3xl animate-floating-orbs"
+          style={{ animationDelay: '2s' }}
+        />
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-500/10 dark:bg-purple-500/10 light:bg-purple-400/8 rounded-full blur-3xl animate-floating-orbs"
+          style={{ animationDelay: '4s' }}
+        />
 
         {/* Scanline Effect (subtle) */}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-cyan-500/5 to-transparent h-2 animate-scanline opacity-30" />
@@ -528,10 +529,33 @@ export default function DashboardPage() {
         {/* Neural Network Grid Pattern */}
         <svg className="absolute inset-0 w-full h-full opacity-[0.03] dark:opacity-[0.03] light:opacity-[0.02]">
           <defs>
-            <pattern id="neural-grid" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
+            <pattern
+              id="neural-grid"
+              x="0"
+              y="0"
+              width="100"
+              height="100"
+              patternUnits="userSpaceOnUse"
+            >
               <circle cx="50" cy="50" r="1.5" fill="currentColor" className="text-cyan-400" />
-              <line x1="50" y1="50" x2="100" y2="0" stroke="currentColor" strokeWidth="0.5" className="text-cyan-400/50" />
-              <line x1="50" y1="50" x2="0" y2="100" stroke="currentColor" strokeWidth="0.5" className="text-cyan-400/50" />
+              <line
+                x1="50"
+                y1="50"
+                x2="100"
+                y2="0"
+                stroke="currentColor"
+                strokeWidth="0.5"
+                className="text-cyan-400/50"
+              />
+              <line
+                x1="50"
+                y1="50"
+                x2="0"
+                y2="100"
+                stroke="currentColor"
+                strokeWidth="0.5"
+                className="text-cyan-400/50"
+              />
             </pattern>
           </defs>
           <rect width="100%" height="100%" fill="url(#neural-grid)" />
@@ -557,7 +581,10 @@ export default function DashboardPage() {
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       >
         {/* Holographic Top Border Effect */}
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent dark:via-cyan-400/50 light:via-blue-400/50 animate-holographic-shift" style={{ backgroundSize: '200% 100%' }} />
+        <div
+          className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent dark:via-cyan-400/50 light:via-blue-400/50 animate-holographic-shift"
+          style={{ backgroundSize: '200% 100%' }}
+        />
         <div className="max-w-[1920px] mx-auto px-6 py-4">
           {/* Single Row: Logo + Quick Add + Search + Notifications + User Menu */}
           <div className="flex items-center justify-between gap-4">
@@ -606,14 +633,14 @@ export default function DashboardPage() {
                   onCommandPaletteOpen={() => setIsCommandPaletteOpen(true)}
                   placeholder="Search tasks..."
                   tasks={tasks || []}
-                  onTaskClick={(taskId) => {
-                    const task = tasks?.find((t) => t.id === taskId)
+                  onTaskClick={taskId => {
+                    const task = tasks?.find(t => t.id === taskId)
                     if (task) {
                       setSelectedTask(task)
                       setIsTaskFormOpen(true)
                     }
                   }}
-                  onQuickFilterClick={(filterId) => {
+                  onQuickFilterClick={filterId => {
                     // Apply quick filters
                     switch (filterId) {
                       case 'high_priority':
@@ -654,10 +681,10 @@ export default function DashboardPage() {
                   // TODO: Implement mark all as read
                   console.log('Mark all notifications as read')
                 }}
-                onNotificationClick={(notification) => {
+                onNotificationClick={notification => {
                   // Navigate to task if taskId is present
                   if (notification.taskId) {
-                    const task = tasks?.find((t) => t.id === notification.taskId)
+                    const task = tasks?.find(t => t.id === notification.taskId)
                     if (task) {
                       setSelectedTask(task)
                       setIsTaskFormOpen(true)
@@ -725,11 +752,7 @@ export default function DashboardPage() {
                 <p className="text-sm text-red-200 flex-1">
                   Notifications blocked. Enable to receive deadline reminders.
                 </p>
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={requestPermission}
-                >
+                <Button variant="danger" size="sm" onClick={requestPermission}>
                   Enable
                 </Button>
               </div>
@@ -762,8 +785,8 @@ export default function DashboardPage() {
                   searchQuery
                     ? 'no-search-results'
                     : filterPriority !== 'all' || filterTags !== 'all'
-                    ? 'no-filtered-tasks'
-                    : 'no-tasks'
+                      ? 'no-filtered-tasks'
+                      : 'no-tasks'
                 }
                 searchQuery={searchQuery}
                 onAction={() => {
@@ -804,9 +827,7 @@ export default function DashboardPage() {
                         </svg>
                       </div>
                       <div>
-                        <p className="text-xs text-white/60 font-medium">
-                          Showing tasks for
-                        </p>
+                        <p className="text-xs text-white/60 font-medium">Showing tasks for</p>
                         <p className="text-white font-semibold">
                           {selectedCalendarDate.toLocaleDateString('en-US', {
                             weekday: 'long',
@@ -851,8 +872,8 @@ export default function DashboardPage() {
                       selectedPriorityFilter === 'HIGH'
                         ? 'bg-gradient-to-r from-red-500/20 to-orange-500/20 border-red-400/30'
                         : selectedPriorityFilter === 'MEDIUM'
-                        ? 'bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border-yellow-400/30'
-                        : 'bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-green-400/30'
+                          ? 'bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border-yellow-400/30'
+                          : 'bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-green-400/30'
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -861,8 +882,8 @@ export default function DashboardPage() {
                           selectedPriorityFilter === 'HIGH'
                             ? 'bg-red-500/30'
                             : selectedPriorityFilter === 'MEDIUM'
-                            ? 'bg-yellow-500/30'
-                            : 'bg-green-500/30'
+                              ? 'bg-yellow-500/30'
+                              : 'bg-green-500/30'
                         }`}
                       >
                         <svg
@@ -870,8 +891,8 @@ export default function DashboardPage() {
                             selectedPriorityFilter === 'HIGH'
                               ? 'text-red-300'
                               : selectedPriorityFilter === 'MEDIUM'
-                              ? 'text-yellow-300'
-                              : 'text-green-300'
+                                ? 'text-yellow-300'
+                                : 'text-green-300'
                           }`}
                           fill="none"
                           stroke="currentColor"
@@ -890,7 +911,8 @@ export default function DashboardPage() {
                           Showing {selectedPriorityFilter.toLowerCase()} priority tasks
                         </p>
                         <p className="text-white font-semibold">
-                          {filteredTasks?.length || 0} {filteredTasks?.length === 1 ? 'task' : 'tasks'} found
+                          {filteredTasks?.length || 0}{' '}
+                          {filteredTasks?.length === 1 ? 'task' : 'tasks'} found
                         </p>
                       </div>
                     </div>
@@ -920,127 +942,121 @@ export default function DashboardPage() {
 
                 <div className="grid grid-cols-2 gap-6">
                   {columns.map((column, columnIndex) => (
-                  <motion.div
-                    key={column.status}
-                    className="flex flex-col"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: columnIndex * 0.1 }}
-                  >
-                    {/* Column Header */}
-                    <div
-                      className={`bg-gradient-to-br ${column.gradient} backdrop-blur-xl border border-blue-500/20 rounded-2xl p-6 mb-5 shadow-lg`}
+                    <motion.div
+                      key={column.status}
+                      className="flex flex-col"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: columnIndex * 0.1 }}
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
-                            <svg
-                              className={`w-6 h-6 ${column.iconColor}`}
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              {column.icon}
-                            </svg>
-                          </div>
-                          <div>
-                            <h2 className="text-2xl font-bold text-white">
-                              {column.title}
-                            </h2>
-                            <p className="text-sm text-gray-400">
-                              {column.tasks?.length || 0} tasks
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                          {/* Progress Ring */}
-                          <div className="relative w-16 h-16">
-                            <svg className="w-16 h-16 transform -rotate-90">
-                              <circle
-                                cx="32"
-                                cy="32"
-                                r="28"
-                                stroke="currentColor"
-                                strokeWidth="4"
-                                fill="none"
-                                className="text-white/10"
-                              />
-                              <circle
-                                cx="32"
-                                cy="32"
-                                r="28"
-                                stroke="currentColor"
-                                strokeWidth="4"
-                                fill="none"
-                                strokeLinecap="round"
-                                className={column.iconColor}
-                                strokeDasharray={`${
-                                  ((column.tasks?.length || 0) / totalTasks) * 176
-                                } 176`}
-                              />
-                            </svg>
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <span className="text-sm font-bold text-white">
-                                {totalTasks > 0
-                                  ? Math.round(
-                                      ((column.tasks?.length || 0) / totalTasks) * 100
-                                    )
-                                  : 0}
-                                %
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Task Cards */}
-                    <div className="space-y-3 flex-1 min-h-[500px]">
-                      <AnimatePresence mode="popLayout">
-                        {column.tasks?.length === 0 ? (
-                          <motion.div
-                            className="bg-white/5 backdrop-blur-lg border border-blue-500/10 rounded-2xl p-12 text-center"
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                          >
-                            <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                      {/* Column Header */}
+                      <div
+                        className={`bg-gradient-to-br ${column.gradient} backdrop-blur-xl border border-blue-500/20 rounded-2xl p-6 mb-5 shadow-lg`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
                               <svg
-                                className="w-8 h-8 text-gray-500"
+                                className={`w-6 h-6 ${column.iconColor}`}
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
                               >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
-                                />
+                                {column.icon}
                               </svg>
                             </div>
-                            <p className="text-gray-400 text-sm">
-                              No tasks in this column
-                            </p>
-                          </motion.div>
-                        ) : (
-                          column.tasks?.map((task, index) => (
-                            <TaskCard
-                              key={task.id}
-                              task={task}
-                              index={index}
-                              onClick={() => handleEditTask(task)}
-                              onDelete={handleDeleteTask}
-                              onToggleStatus={handleToggleStatus}
-                              onCheckboxClick={handleOpenTaskDrawer}
-                            />
-                          ))
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  </motion.div>
-                ))}
+                            <div>
+                              <h2 className="text-2xl font-bold text-white">{column.title}</h2>
+                              <p className="text-sm text-gray-400">
+                                {column.tasks?.length || 0} tasks
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            {/* Progress Ring */}
+                            <div className="relative w-16 h-16">
+                              <svg className="w-16 h-16 transform -rotate-90">
+                                <circle
+                                  cx="32"
+                                  cy="32"
+                                  r="28"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                  fill="none"
+                                  className="text-white/10"
+                                />
+                                <circle
+                                  cx="32"
+                                  cy="32"
+                                  r="28"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                  fill="none"
+                                  strokeLinecap="round"
+                                  className={column.iconColor}
+                                  strokeDasharray={`${
+                                    ((column.tasks?.length || 0) / totalTasks) * 176
+                                  } 176`}
+                                />
+                              </svg>
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <span className="text-sm font-bold text-white">
+                                  {totalTasks > 0
+                                    ? Math.round(((column.tasks?.length || 0) / totalTasks) * 100)
+                                    : 0}
+                                  %
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Task Cards */}
+                      <div className="space-y-3 flex-1 min-h-[500px]">
+                        <AnimatePresence mode="popLayout">
+                          {column.tasks?.length === 0 ? (
+                            <motion.div
+                              className="bg-white/5 backdrop-blur-lg border border-blue-500/10 rounded-2xl p-12 text-center"
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.9 }}
+                            >
+                              <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg
+                                  className="w-8 h-8 text-gray-500"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
+                                  />
+                                </svg>
+                              </div>
+                              <p className="text-gray-400 text-sm">No tasks in this column</p>
+                            </motion.div>
+                          ) : (
+                            column.tasks?.map((task, index) => (
+                              <TaskCard
+                                key={task.id}
+                                task={task}
+                                index={index}
+                                onClick={() => handleEditTask(task)}
+                                onDelete={handleDeleteTask}
+                                onToggleStatus={handleToggleStatus}
+                                onCheckboxClick={handleOpenTaskDrawer}
+                              />
+                            ))
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    </motion.div>
+                  ))}
                 </div>
               </>
             )}
@@ -1116,12 +1132,11 @@ export default function DashboardPage() {
                         </svg>
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold text-white">
-                          Upcoming Deadlines
-                        </h3>
+                        <h3 className="text-lg font-semibold text-white">Upcoming Deadlines</h3>
                         {upcomingDeadlines.length > 0 && (
                           <span className="text-xs text-purple-300">
-                            {upcomingDeadlines.length} {upcomingDeadlines.length === 1 ? 'task' : 'tasks'}
+                            {upcomingDeadlines.length}{' '}
+                            {upcomingDeadlines.length === 1 ? 'task' : 'tasks'}
                           </span>
                         )}
                       </div>
@@ -1165,14 +1180,12 @@ export default function DashboardPage() {
                         <h4 className="text-white text-lg font-semibold mb-1">
                           No upcoming deadlines!
                         </h4>
-                        <p className="text-gray-400 text-sm">
-                          Enjoy your free time
-                        </p>
+                        <p className="text-gray-400 text-sm">Enjoy your free time</p>
                       </motion.div>
                     ) : (
                       /* Option 1: Grouped by urgency (uncomment to use) */
                       <>
-                        {deadlineGroups.map((group) => (
+                        {deadlineGroups.map(group => (
                           <DeadlineGroup
                             key={group.urgency}
                             title={group.title}
@@ -1180,8 +1193,7 @@ export default function DashboardPage() {
                             color={group.color}
                             bgColor={group.bgColor}
                             defaultExpanded={
-                              group.urgency === 'overdue' ||
-                              group.urgency === 'today'
+                              group.urgency === 'overdue' || group.urgency === 'today'
                             }
                           >
                             <AnimatePresence mode="popLayout">
@@ -1191,7 +1203,7 @@ export default function DashboardPage() {
                                   task={task}
                                   index={index}
                                   onClick={() => handleEditTask(task)}
-                                  onToggleComplete={(taskId) =>
+                                  onToggleComplete={taskId =>
                                     handleToggleStatus(taskId, 'COMPLETE')
                                   }
                                 />
@@ -1303,17 +1315,12 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge
-                    variant={
-                      taskForDrawer.priority.toLowerCase() as 'high' | 'medium' | 'low'
-                    }
+                    variant={taskForDrawer.priority.toLowerCase() as 'high' | 'medium' | 'low'}
                     size="sm"
                   >
                     {taskForDrawer.priority}
                   </Badge>
-                  <Badge
-                    variant={taskForDrawer.status === 'COMPLETE' ? 'low' : 'info'}
-                    size="sm"
-                  >
+                  <Badge variant={taskForDrawer.status === 'COMPLETE' ? 'low' : 'info'} size="sm">
                     {taskForDrawer.status}
                   </Badge>
                 </div>
@@ -1338,14 +1345,11 @@ export default function DashboardPage() {
                       <CalendarIcon className="w-4 h-4 text-cyan-400" />
                       <span className="text-sm">
                         {taskForDrawer.due_date
-                          ? new Date(taskForDrawer.due_date).toLocaleDateString(
-                              'en-US',
-                              {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric',
-                              }
-                            )
+                          ? new Date(taskForDrawer.due_date).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })
                           : 'No due date'}
                       </span>
                     </div>
@@ -1358,13 +1362,10 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-2 text-white/80 bg-white/5 p-3 rounded-xl border border-white/5">
                       <Clock className="w-4 h-4 text-purple-400" />
                       <span className="text-sm">
-                        {new Date(taskForDrawer.created_at).toLocaleDateString(
-                          'en-US',
-                          {
-                            month: 'short',
-                            day: 'numeric',
-                          }
-                        )}
+                        {new Date(taskForDrawer.created_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                        })}
                       </span>
                     </div>
                   </div>
@@ -1393,18 +1394,14 @@ export default function DashboardPage() {
                     onClick={() => {
                       handleToggleStatus(
                         taskForDrawer.id,
-                        taskForDrawer.status === 'COMPLETE'
-                          ? 'INCOMPLETE'
-                          : 'COMPLETE'
+                        taskForDrawer.status === 'COMPLETE' ? 'INCOMPLETE' : 'COMPLETE'
                       )
                       handleCloseTaskDrawer()
                     }}
                     variant="primary"
                     className="w-full py-4 text-lg font-bold shadow-lg shadow-cyan-500/20"
                   >
-                    {taskForDrawer.status === 'COMPLETE'
-                      ? 'Mark Incomplete'
-                      : 'Mark Complete'}
+                    {taskForDrawer.status === 'COMPLETE' ? 'Mark Incomplete' : 'Mark Complete'}
                   </Button>
                   <div className="flex gap-3">
                     <Button

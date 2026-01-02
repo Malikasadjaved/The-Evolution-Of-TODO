@@ -51,7 +51,7 @@ const ProDashboard = () => {
     'HIGH' | 'MEDIUM' | 'LOW' | 'all'
   >('all')
   const [selectedTagFilter, setSelectedTagFilter] = useState<string>('all')
-  const [sortField, setSortField] = useState<'due_date' | 'priority' | 'title'>('due_date')
+  const [sortField, setSortField] = useState<'due_date' | 'priority' | 'title' | undefined>(undefined)
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
