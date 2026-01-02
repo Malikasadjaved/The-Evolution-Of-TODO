@@ -62,7 +62,7 @@ export default function DashboardPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterPriority, setFilterPriority] = useState<string>('all')
   const [filterTags, setFilterTags] = useState<string>('all')
-  const [sortField, setSortField] = useState<SortField>('')
+  const [sortField, setSortField] = useState<SortField>('created_at')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true)
 
