@@ -1097,7 +1097,7 @@ const ProDashboard = () => {
                 </p>
               </div>
             </div>
-            <div className="flex items-center" gap-3>
+            <div className="flex items-center gap-3">
               <button
                 className={`p-2 ${themeClasses.cardHover} rounded-lg transition-colors relative ${themeClasses.textPrimary}`}
               >
