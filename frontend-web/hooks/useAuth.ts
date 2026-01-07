@@ -110,7 +110,9 @@ const fetchSession = async (): Promise<User | null> => {
  * Sign in with email and password
  */
 const signIn = async (input: SignInInput): Promise<AuthResponse> => {
-  const response = await fetch(`${env.NEXT_PUBLIC_BETTER_AUTH_URL}/sign-in`, {
+  // Use relative URL to work in any environment (localhost, Kubernetes, production)
+  // (as previous if versel not work use the previouse at down line as itis on github) const response = await fetch(`${env.NEXT_PUBLIC_BETTER_AUTH_URL}/sign-in`, {
+  const response = await fetch('/api/auth/sign-in', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
@@ -130,7 +132,9 @@ const signIn = async (input: SignInInput): Promise<AuthResponse> => {
  * Sign up with email, password, and name
  */
 const signUp = async (input: SignUpInput): Promise<AuthResponse> => {
-  const response = await fetch(`${env.NEXT_PUBLIC_BETTER_AUTH_URL}/sign-up`, {
+  // Use relative URL to work in any environment (localhost, Kubernetes, production)
+  // (if versel down use the previous line as it is on github )const response = await fetch(`${env.NEXT_PUBLIC_BETTER_AUTH_URL}/sign-up`, {
+  const response = await fetch('/api/auth/sign-up', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
@@ -153,8 +157,10 @@ const signOut = async (): Promise<void> => {
   removeToken()
 
   // Optionally notify backend
+  // Use relative URL to work in any environment (localhost, Kubernetes, production)
+  // (versel) await fetch(`${env.NEXT_PUBLIC_BETTER_AUTH_URL}/sign-out`, {
   try {
-    await fetch(`${env.NEXT_PUBLIC_BETTER_AUTH_URL}/sign-out`, {
+    await fetch('/api/auth/sign-out', {
       method: 'POST',
     })
   } catch {

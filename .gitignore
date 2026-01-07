@@ -85,6 +85,26 @@ GITHUB_PUSH_CHECKLIST.md
 frontend/.next/
 frontend/out/
 frontend/tsconfig.tsbuildinfo
+frontend-web/.next/
+frontend-web/out/
+frontend-web/tsconfig.tsbuildinfo
+frontend-chatbot/.next/
+frontend-chatbot/dist/
+frontend-chatbot/build/
+frontend-chatbot/tsconfig.tsbuildinfo
+
+# Node Modules
+node_modules/
+frontend/node_modules/
+frontend-web/node_modules/
+frontend-chatbot/node_modules/
+**/node_modules/
+
+# Package Lock Files (optional - team preference)
+package-lock.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Backend Virtual Environment
 backend/venv/
@@ -98,4 +118,58 @@ frontend-chatbot/.env
 **/.env
 
 # Allow .env.example (safe to commit - placeholders only)
-!**/.env.example 
+!**/.env.example
+
+# Kubernetes Secrets (Phase IV - CRITICAL: Never commit actual secrets)
+k8s/secret.yaml
+k8s/*secret*.yaml
+helm-charts/todo-app/values-local.yaml
+helm-charts/todo-app/values-prod.yaml
+
+# Kubernetes Development Files
+.kube/
+*.kubeconfig
+kubeconfig*
+minikube.exe
+minikube
+kubectl
+*.dockerenv
+
+# Helm Charts
+helm-charts/**/charts/
+helm-charts/**/.helmignore
+*.tgz
+
+# Docker Build Artifacts
+*.log
+docker-compose.override.yml
+
+# Minikube Cache
+.minikube/
+
+# Diagnostics & Troubleshooting
+diagnostics/
+*.diagnostics.txt
+troubleshoot-*.txt
+
+# Terraform (if used in future)
+.terraform/
+*.tfstate*
+*.tfvars
+
+# Test Data Files (Added: 2026-01-07 - Security)
+*-data.json
+*-response.json
+signin-*.json
+test-data.json
+task-data.json
+
+# Temporary Test Scripts (one-time debugging)
+test-*.sh
+
+# Claude Task Outputs
+/tmp/claude/
+*.output
+
+# Large Analysis Documents (team preference)
+*COMPLIANCE_ANALYSIS.md

@@ -34,9 +34,17 @@ COPY --from=dependencies /app/node_modules ./node_modules
 # Copy application source code
 COPY . .
 
-# Build arguments (passed from docker-compose.yml)
-ARG NEXT_PUBLIC_API_URL
+# Build arguments (passed from docker build or docker-compose.yml)
+# SECURITY: Never commit secrets! Pass them at build time via --build-arg
+# Example: docker build --build-arg NEXT_PUBLIC_BETTER_AUTH_SECRET="your-secret" ...
+ARG NEXT_PUBLIC_API_URL=http://localhost:8000
+ARG NEXT_PUBLIC_BETTER_AUTH_SECRET
+ARG NEXT_PUBLIC_BETTER_AUTH_URL=http://localhost:3000/api/auth
+
+# Set environment variables for build
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_BETTER_AUTH_SECRET=${NEXT_PUBLIC_BETTER_AUTH_SECRET}
+ENV NEXT_PUBLIC_BETTER_AUTH_URL=${NEXT_PUBLIC_BETTER_AUTH_URL}
 
 # Disable Next.js telemetry
 ENV NEXT_TELEMETRY_DISABLED=1
