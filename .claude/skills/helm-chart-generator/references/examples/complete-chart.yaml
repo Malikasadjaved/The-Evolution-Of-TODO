@@ -1,0 +1,713 @@
+# Complete Helm Chart Example
+# Based on Todo App Project (Backend + Frontend-Web + Frontend-Chatbot)
+
+# This is a complete values.yaml file demonstrating all best practices:
+# - Multi-service deployment (3 services)
+# - Security hardening (non-root, read-only FS, dropped capabilities)
+# - Health probes (liveness + readiness)
+# - Resource limits
+# - Environment-specific configurations
+# - Shared secrets and ConfigMaps
+# - Ingress routing
+
+---
+# Chart.yaml
+apiVersion: v2
+name: todo-app
+description: |
+  A complete Todo Application with FastAPI backend, Next.js web UI, and AI chatbot.
+  Demonstrates multi-service Helm chart with production-grade security and resource management.
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - todo
+  - fastapi
+  - nextjs
+  - ai-chatbot
+maintainers:
+  - name: Todo App Team
+    email: team@example.com
+kubeVersion: ">=1.19.0-0"
+
+---
+# values.yaml (Production Defaults)
+
+global:
+  environment: production
+  namespace: todo-app
+  labels:
+    project: todo-app
+    managed-by: helm
+
+# Image pull secrets (for private registries)
+imagePullSecrets: []
+# - name: regcred
+
+# Service Account
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+  automount: false  # Pods don't need K8s API access
+
+# RBAC (if needed for advanced use cases)
+rbac:
+  create: false
+
+# ============================================================================
+# Backend Service (FastAPI)
+# ============================================================================
+backend:
+  enabled: true
+  replicaCount: 2
+
+  image:
+    repository: todo-app-backend
+    tag: "latest"
+    pullPolicy: Always
+
+  service:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+    annotations: {}
+
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 10
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+  # Environment variables
+  env:
+    - name: ENVIRONMENT
+      value: "production"
+    - name: LOG_LEVEL
+      value: "info"
+    - name: BACKEND_CORS_ORIGINS
+      value: "https://todo.example.com"
+    - name: DATABASE_URL
+      valueFrom:
+        secretKeyRef:
+          name: todo-app-secrets
+          key: database-url
+    - name: BETTER_AUTH_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: todo-app-secrets
+          key: auth-secret
+    - name: BETTER_AUTH_URL
+      value: "https://api.todo.example.com/api/auth"
+    - name: FRONTEND_URL
+      value: "https://todo.example.com"
+    - name: OPENAI_API_KEY
+      valueFrom:
+        secretKeyRef:
+          name: todo-app-secrets
+          key: openai-api-key
+
+  # Init container for database migrations
+  initContainers:
+    migration:
+      enabled: true
+      image:
+        repository: todo-app-backend
+        tag: "latest"
+      command: ["python", "-m", "alembic", "upgrade", "head"]
+      env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: todo-app-secrets
+              key: database-url
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ============================================================================
+# Frontend Web Service (Next.js)
+# ============================================================================
+frontendWeb:
+  enabled: true
+  replicaCount: 2
+
+  image:
+    repository: todo-app-frontend-web
+    tag: "latest"
+    pullPolicy: Always
+
+  service:
+    type: ClusterIP
+    port: 3000
+    targetPort: 3000
+    annotations: {}
+
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 75
+
+  livenessProbe:
+    httpGet:
+      path: /
+      port: 3000
+    initialDelaySeconds: 15
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /
+      port: 3000
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+  # Build-time environment variables (baked into image)
+  # These are documented here but must be provided as Docker build args
+  buildArgs:
+    NEXT_PUBLIC_API_URL: "https://api.todo.example.com"
+    NEXT_PUBLIC_BETTER_AUTH_URL: "https://todo.example.com/api/auth"
+    NEXT_PUBLIC_BETTER_AUTH_SECRET: "<from-secrets>"
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ============================================================================
+# Frontend Chatbot Service (Next.js + OpenAI ChatKit)
+# ============================================================================
+frontendChatbot:
+  enabled: true
+  replicaCount: 2
+
+  image:
+    repository: todo-app-frontend-chatbot
+    tag: "latest"
+    pullPolicy: Always
+
+  service:
+    type: ClusterIP
+    port: 3001
+    targetPort: 3001
+    annotations: {}
+
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 75
+
+  livenessProbe:
+    httpGet:
+      path: /
+      port: 3001
+    initialDelaySeconds: 15
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /
+      port: 3001
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+  # Build-time environment variables
+  buildArgs:
+    VITE_API_URL: "https://api.todo.example.com"
+    VITE_OPENAI_API_KEY: "<from-secrets>"
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ============================================================================
+# Ingress Configuration
+# ============================================================================
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: todo.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: todo-app-frontend-web
+              port:
+                number: 3000
+    - host: chat.todo.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: todo-app-frontend-chatbot
+              port:
+                number: 3001
+    - host: api.todo.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: todo-app-backend
+              port:
+                number: 8000
+  tls:
+    - secretName: todo-app-tls
+      hosts:
+        - todo.example.com
+        - chat.todo.example.com
+        - api.todo.example.com
+
+# ============================================================================
+# Network Policies
+# ============================================================================
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+
+# ============================================================================
+# Pod Disruption Budget
+# ============================================================================
+podDisruptionBudget:
+  enabled: true
+  backend:
+    minAvailable: 1
+  frontendWeb:
+    minAvailable: 1
+  frontendChatbot:
+    minAvailable: 1
+
+# ============================================================================
+# Shared Configuration
+# ============================================================================
+sharedConfig:
+  logLevel: "info"
+  environment: "production"
+  apiTimeout: "30s"
+  maxRetries: "3"
+
+---
+# values-dev.yaml (Development Overrides)
+
+global:
+  environment: development
+
+backend:
+  replicaCount: 1
+  image:
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+  autoscaling:
+    enabled: false
+  env:
+    - name: ENVIRONMENT
+      value: "development"
+    - name: LOG_LEVEL
+      value: "debug"
+    - name: BACKEND_CORS_ORIGINS
+      value: "http://localhost:3000,http://localhost:3001"
+    - name: DATABASE_URL
+      valueFrom:
+        secretKeyRef:
+          name: todo-app-secrets
+          key: database-url
+    - name: BETTER_AUTH_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: todo-app-secrets
+          key: auth-secret
+    - name: BETTER_AUTH_URL
+      value: "http://localhost:8000/api/auth"
+    - name: FRONTEND_URL
+      value: "http://localhost:3000"
+    - name: OPENAI_API_KEY
+      valueFrom:
+        secretKeyRef:
+          name: todo-app-secrets
+          key: openai-api-key
+  initContainers:
+    migration:
+      enabled: true
+
+frontendWeb:
+  replicaCount: 1
+  image:
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "50m"
+    limits:
+      memory: "128Mi"
+      cpu: "100m"
+  buildArgs:
+    NEXT_PUBLIC_API_URL: "http://localhost:8000"
+    NEXT_PUBLIC_BETTER_AUTH_URL: "http://localhost:3000/api/auth"
+
+frontendChatbot:
+  replicaCount: 1
+  image:
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "50m"
+    limits:
+      memory: "128Mi"
+      cpu: "100m"
+  buildArgs:
+    VITE_API_URL: "http://localhost:8000"
+
+ingress:
+  enabled: false  # Use kubectl port-forward in dev
+
+networkPolicy:
+  enabled: false  # Disable for easier local development
+
+podDisruptionBudget:
+  enabled: false
+
+---
+# values-prod.yaml (Production Overrides)
+
+global:
+  environment: production
+
+backend:
+  replicaCount: 3
+  image:
+    pullPolicy: Always
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+frontendWeb:
+  replicaCount: 3
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 75
+
+frontendChatbot:
+  replicaCount: 3
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 75
+
+ingress:
+  enabled: true
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/enable-modsecurity: "true"
+    nginx.ingress.kubernetes.io/enable-owasp-core-rules: "true"
+
+networkPolicy:
+  enabled: true
+
+podDisruptionBudget:
+  enabled: true
+
+---
+# templates/backend-deployment.yaml
+
+{{- if .Values.backend.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "todo-app.fullname" . }}-backend
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "todo-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+spec:
+  {{- if not .Values.backend.autoscaling.enabled }}
+  replicas: {{ .Values.backend.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "todo-app.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: backend
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      labels:
+        {{- include "todo-app.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: backend
+    spec:
+      serviceAccountName: {{ include "todo-app.serviceAccountName" . }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+
+      {{- if .Values.backend.initContainers.migration.enabled }}
+      initContainers:
+      - name: migration
+        image: "{{ .Values.backend.initContainers.migration.image.repository }}:{{ .Values.backend.initContainers.migration.image.tag }}"
+        command:
+          {{- toYaml .Values.backend.initContainers.migration.command | nindent 10 }}
+        {{- with .Values.backend.initContainers.migration.env }}
+        env:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      {{- end }}
+
+      containers:
+      - name: backend
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          capabilities:
+            drop:
+            - ALL
+        image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.backend.service.targetPort }}
+          protocol: TCP
+        {{- with .Values.backend.livenessProbe }}
+        livenessProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.backend.readinessProbe }}
+        readinessProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.backend.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.backend.env }}
+        env:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: cache
+          mountPath: /app/.cache
+
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: cache
+        emptyDir: {}
+
+      {{- with .Values.backend.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.backend.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.backend.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+
+---
+# templates/networkpolicy-backend.yaml
+
+{{- if .Values.networkPolicy.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "todo-app.fullname" . }}-backend
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "todo-app.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "todo-app.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: backend
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow traffic from frontend-web
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/component: frontend-web
+    ports:
+    - protocol: TCP
+      port: 8000
+  # Allow traffic from frontend-chatbot
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/component: frontend-chatbot
+    ports:
+    - protocol: TCP
+      port: 8000
+  # Allow traffic from ingress controller
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8000
+  egress:
+  # Allow DNS
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow external database (PostgreSQL on Neon)
+  - to:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow HTTPS for OpenAI API
+  - to:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
+{{- end }}
+
+---
+# Installation Instructions
+
+# 1. Create namespace
+kubectl create namespace todo-app
+
+# 2. Create secrets (BEFORE installing chart)
+kubectl create secret generic todo-app-secrets \
+  --from-literal=database-url="postgresql://user:pass@host/db" \
+  --from-literal=auth-secret="<43-char-secret>" \
+  --from-literal=openai-api-key="sk-..." \
+  --namespace=todo-app
+
+# 3. Install chart (Development)
+helm install todo-app ./todo-app \
+  -f ./todo-app/values-dev.yaml \
+  --namespace todo-app
+
+# 4. Install chart (Production)
+helm install todo-app ./todo-app \
+  -f ./todo-app/values-prod.yaml \
+  --namespace todo-app
+
+# 5. Upgrade chart
+helm upgrade todo-app ./todo-app \
+  -f ./todo-app/values-prod.yaml \
+  --namespace todo-app
+
+# 6. Uninstall chart
+helm uninstall todo-app --namespace todo-app
+
+# 7. Access application (Development)
+kubectl port-forward svc/todo-app-backend 8000:8000 -n todo-app &
+kubectl port-forward svc/todo-app-frontend-web 3000:3000 -n todo-app &
+kubectl port-forward svc/todo-app-frontend-chatbot 3001:3001 -n todo-app &
+
+# 8. Access application (Production via Ingress)
+# Visit: https://todo.example.com
+# Visit: https://chat.todo.example.com
+# Visit: https://api.todo.example.com

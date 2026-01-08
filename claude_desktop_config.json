@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "obsidian": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@mauricio.wolff/mcp-obsidian",
+        "D:\\ObsedianMcp\\obsidianu"
+      ]
+    }
+  }
+}

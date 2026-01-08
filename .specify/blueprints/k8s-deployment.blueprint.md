@@ -1,281 +1,272 @@
-# Blueprint: Kubernetes Deployment
+# Kubernetes Deployment Blueprint
 
-**Purpose:** Standard pattern for creating production-ready Kubernetes Deployments with best practices from Phase IV constitution.
-
-**When to Use:**
-- Deploying containerized applications to Kubernetes
-- Ensuring high availability with multiple replicas
-- Implementing zero-downtime rolling updates
-- Enforcing resource limits and security policies
-
-**Phase IV Constitution Reference:** Section III (Kubernetes-Native Design)
+**Version**: 1.0.0
+**Target**: Stateless multi-service applications
+**Environment**: Kubernetes 1.25+ (Minikube, EKS, GKE, AKS)
+**Status**: Production-ready ✅
 
 ---
 
-## Standard Deployment Pattern
+## Overview
 
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: <app-name>-<service-name>
-  labels:
-    app: <service-name>
-    tier: <api|web|worker>
-    phase: <phase-number>
-    version: <semantic-version>
-spec:
-  replicas: 2  # Minimum for HA
+This blueprint provides a complete, reusable pattern for deploying stateless microservices to Kubernetes with production-grade configuration, health monitoring, resource management, and automated rollback capabilities.
 
-  selector:
-    matchLabels:
-      app: <service-name>
+**Based on**: "Evolution of TODO" Phase IV Kubernetes Deployment (specs/003-k8s-deployment/)
 
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxUnavailable: 0  # Zero downtime (CRITICAL)
-      maxSurge: 1
+**Applies to**:
+- Multi-service applications (backend API + frontend UIs)
+- Stateless service architectures
+- Applications with external databases (PostgreSQL, etc.)
+- Helm-managed deployments
 
-  template:
-    metadata:
-      labels:
-        app: <service-name>
-        tier: <api|web|worker>
-        version: <semantic-version>
+---
 
-    spec:
-      # Security Context (REQUIRED - Constitution Section X)
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000  # Non-root user
-        fsGroup: 1000
+## Blueprint Structure
 
-      containers:
-      - name: <service-name>
-        image: <registry>/<image-name>:<tag>
-        imagePullPolicy: IfNotPresent  # Dev: IfNotPresent, Prod: Always
-
-        ports:
-        - containerPort: <port>
-          protocol: TCP
-          name: http
-
-        # Environment Variables (REQUIRED)
-        env:
-        # Non-secret config (from values or ConfigMap)
-        - name: ENVIRONMENT
-          value: <dev|staging|production>
-        - name: LOG_LEVEL
-          value: <INFO|WARN|ERROR>
-
-        # Secrets (from Kubernetes Secret)
-        - name: DATABASE_URL
-          valueFrom:
-            secretKeyRef:
-              name: app-secrets
-              key: DATABASE_URL
-        - name: API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: app-secrets
-              key: API_KEY
-
-        # Resource Limits (REQUIRED - Constitution Section IX)
-        resources:
-          requests:
-            memory: "256Mi"  # Guaranteed minimum
-            cpu: "250m"
-          limits:
-            memory: "512Mi"  # Maximum allowed
-            cpu: "500m"
-
-        # Liveness Probe (REQUIRED - Constitution Section VIII)
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: <port>
-          initialDelaySeconds: 10
-          periodSeconds: 30
-          timeoutSeconds: 3
-          failureThreshold: 3
-
-        # Readiness Probe (REQUIRED - Constitution Section VIII)
-        readinessProbe:
-          httpGet:
-            path: /ready
-            port: <port>
-          initialDelaySeconds: 5
-          periodSeconds: 10
-          timeoutSeconds: 3
-          failureThreshold: 3
+```
+project-root/
+├── docker/                          # Container image definitions
+│   ├── backend.Dockerfile           # FastAPI or Python backend
+│   ├── frontend-web.Dockerfile      # Next.js web UI
+│   └── frontend-api.Dockerfile      # Additional frontend services
+│
+├── k8s/                            # Raw Kubernetes manifests (reference)
+│   ├── backend-deployment.yaml
+│   ├── backend-service.yaml
+│   ├── frontend-web-deployment.yaml
+│   ├── frontend-web-service.yaml
+│   ├── secret.yaml.example
+│   └── configmap.yaml.example
+│
+├── helm-charts/todo-app/           # Helm chart (preferred for deployment)
+│   ├── Chart.yaml
+│   ├── values.yaml                 # Default configuration
+│   ├── values-dev.yaml             # Minikube/local overrides
+│   ├── values-prod.yaml            # Production overrides
+│   ├── templates/
+│   │   ├── _helpers.tpl            # Common labels and selectors
+│   │   ├── deployment-backend.yaml
+│   │   ├── deployment-frontend-web.yaml
+│   │   ├── service-backend.yaml
+│   │   ├── service-frontend-web.yaml
+│   │   ├── configmap.yaml
+│   │   ├── secret.yaml
+│   │   ├── NOTES.txt               # Post-install instructions
+│   │   └── hpa.yaml                # Horizontal pod autoscaler
+│
+├── scripts/
+│   ├── build-images.sh             # Build Docker images
+│   ├── deploy-minikube.sh           # Full deployment automation
+│   ├── health-check.sh              # Smoke tests post-deployment
+│   ├── cleanup.sh                   # Cleanup/rollback
+│   └── ai-gen/                      # AI-generated documentation
+│       ├── docker-ai-prompts.md
+│       ├── kubectl-ai-prompts.md
+│       └── cluster-analysis.txt
+│
+├── docs/
+│   ├── DEPLOYMENT.md                # Step-by-step deployment guide
+│   ├── TROUBLESHOOTING.md           # Common issues and fixes
+│   ├── ARCHITECTURE.md              # Service topology, network flow
+│   └── ENVIRONMENT-SETUP.md         # Prerequisites, tools setup
+│
+└── .dockerignore                    # Docker build context optimization
 ```
 
 ---
 
-## Field Reference
+## Core Components
 
-### Metadata
-- **name**: Format: `<app-name>-<service-name>` (e.g., `todo-app-backend`)
-- **labels**: Key-value pairs for organization and selection
-  - `app`: Service identifier (e.g., `backend`, `frontend-web`)
-  - `tier`: Service tier (`api`, `web`, `worker`, `database`)
-  - `phase`: Development phase (e.g., `phase-4`)
-  - `version`: Semantic version (e.g., `1.0.0`)
+### 1. Multi-Stage Docker Images
+- Separate build and runtime stages
+- Non-root user execution
+- HEALTHCHECK instructions
+- Target sizes: Backend <500MB, Frontends <300MB
 
-### Replicas
-- **Development (Minikube)**: 1-2 replicas
-- **Staging**: 2 replicas
-- **Production**: 2+ replicas (adjust based on load)
+### 2. Kubernetes Deployments
+- RollingUpdate strategy (zero-downtime)
+- Liveness + Readiness probes
+- Resource requests AND limits
+- ConfigMap + Secrets for configuration
 
-### Strategy
-- **type**: `RollingUpdate` (REQUIRED for zero downtime)
-- **maxUnavailable**: `0` (ensures at least one pod always running)
-- **maxSurge**: `1` (allows one extra pod during update)
+### 3. Kubernetes Services
+- Backend as ClusterIP (internal)
+- Frontend as NodePort/LoadBalancer (external)
+- Stateless (no session affinity)
 
-### Security Context
-- **runAsNonRoot**: `true` (REQUIRED - Constitution Section X)
-- **runAsUser**: `1000` or `1001` (non-root UID)
-- **fsGroup**: Same as runAsUser (for file system access)
+### 4. Helm Charts
+- Environment-specific values files
+- One-command deployment
+- Templated manifests
 
-### Image Pull Policy
-- **Development**: `IfNotPresent` (use local Minikube images)
-- **Production**: `Always` (pull latest from registry)
+### 5. Health Monitoring
+- Startup, Readiness, Liveness probes
+- Application health endpoints (/health, /ready)
+- Automatic pod restart on failure
 
-### Environment Variables
-- **Non-Secrets**: Define directly or via ConfigMap
-- **Secrets**: Reference via `secretKeyRef` (NEVER hardcode)
+### 6. Resource Management
+- CPU/Memory requests for scheduling
+- CPU/Memory limits to prevent starvation
+- Total requests <70% node capacity (Phase IV constitution)
 
-### Resource Limits (Constitution Section IX)
-- **Requests**: Guaranteed minimum resources
-  - Backend API: 256Mi memory, 250m CPU
-  - Frontend Web: 128Mi memory, 100m CPU
-  - Worker: 512Mi memory, 500m CPU
-- **Limits**: Maximum allowed (prevents runaway processes)
-  - Backend API: 512Mi memory, 500m CPU
-  - Frontend Web: 256Mi memory, 200m CPU
-  - Worker: 1Gi memory, 1000m CPU
+### 7. Horizontal Pod Autoscaling
+- Scale based on CPU/Memory metrics
+- Configurable min/max replicas
+- Smooth scale-up and scale-down
 
-### Health Probes (Constitution Section VIII)
-- **Liveness Probe**: Restarts container if fails (detect deadlocks)
-  - Path: `/health` (simple status check)
-  - initialDelaySeconds: 10-30s (allow startup time)
-  - periodSeconds: 30s (check every 30s)
-- **Readiness Probe**: Removes from service if fails (detect dependencies)
-  - Path: `/ready` (check database, APIs)
-  - initialDelaySeconds: 5-10s (faster than liveness)
-  - periodSeconds: 10s (check every 10s)
+### 8. Deployment Automation
+- One-command deployment scripts
+- Smoke tests post-deployment
+- Easy rollback via Helm
 
 ---
 
-## Validation Checklist
+## Key Patterns
 
-Before applying deployment:
+### Pattern: Container Resource Sizing
 
-- [ ] Image exists in registry/Minikube Docker daemon
-- [ ] Non-root user specified (UID 1000 or 1001)
-- [ ] Resource requests and limits defined
-- [ ] Liveness probe checks `/health` endpoint
-- [ ] Readiness probe checks `/ready` endpoint
-- [ ] Secrets referenced (not hardcoded)
-- [ ] Environment variables documented
-- [ ] RollingUpdate strategy with maxUnavailable: 0
-- [ ] Replicas >= 2 for production
-- [ ] Labels follow convention (app, tier, phase, version)
+```
+Backend (FastAPI):
+  Requests: 250m CPU, 256Mi memory
+  Limits: 500m CPU, 512Mi memory
 
----
+Frontend (Next.js):
+  Requests: 100m CPU, 128Mi memory
+  Limits: 200m CPU, 256Mi memory
 
-## Common Modifications
-
-### Increase Replicas (Horizontal Scaling)
-```yaml
-spec:
-  replicas: 5  # Scale up for higher load
+2 Backend + 2 Frontend = 700m CPU, 768Mi memory requests
+On 1 CPU, 2GB Minikube = 70% utilization ✅
 ```
 
-### Add Init Container (Database Migration)
+### Pattern: Zero-Downtime Deployments
+
 ```yaml
-spec:
-  template:
-    spec:
-      initContainers:
-      - name: db-migration
-        image: <migration-image>
-        command: ['python', 'migrate.py']
-        env:
-        - name: DATABASE_URL
-          valueFrom:
-            secretKeyRef:
-              name: app-secrets
-              key: DATABASE_URL
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1           # One extra pod during update
+    maxUnavailable: 0     # Never take down all pods
 ```
 
-### Add Volume Mount (Persistent Data)
+### Pattern: Health-Based Orchestration
+
 ```yaml
-spec:
-  template:
-    spec:
-      containers:
-      - name: <service-name>
-        volumeMounts:
-        - name: data
-          mountPath: /data
-      volumes:
-      - name: data
-        persistentVolumeClaim:
-          claimName: <pvc-name>
+# Prevents routing to starting/broken pods
+readinessProbe:
+  httpGet:
+    path: /ready
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  failureThreshold: 3
+
+# Restarts stuck containers
+livenessProbe:
+  httpGet:
+    path: /health
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  failureThreshold: 3
 ```
 
-### Add Affinity (Pod Scheduling)
-```yaml
-spec:
-  template:
-    spec:
-      affinity:
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            podAffinityTerm:
-              labelSelector:
-                matchExpressions:
-                - key: app
-                  operator: In
-                  values:
-                  - backend
-              topologyKey: kubernetes.io/hostname
+### Pattern: Configuration Externalization
+
+```
+ConfigMap: Non-secret configuration (FRONTEND_URL, LOG_LEVEL, etc.)
+Secret: Sensitive data (DATABASE_URL, API_KEYS, etc.)
+Both injected as environment variables at runtime
+No hardcoding in container images
 ```
 
 ---
 
-## Troubleshooting
+## Deployment Checklist
 
-### Pods Not Starting
+- [ ] Docker images built and tested locally
+- [ ] Multi-stage build optimizes size
+- [ ] Non-root user in container
+- [ ] HEALTHCHECK instruction present
+- [ ] Kubernetes manifests validated (helm lint)
+- [ ] Resource requests + limits set
+- [ ] Health probes configured
+- [ ] ConfigMaps created for config
+- [ ] Secrets created for sensitive data (not in git)
+- [ ] Helm chart tested with values-dev.yaml
+- [ ] Helm deployment succeeds
+- [ ] All pods reach Running state
+- [ ] Services have endpoints
+- [ ] Health checks pass (smoke tests)
+- [ ] DNS resolution works
+- [ ] Port forwarding accessible
+- [ ] Logs viewable via kubectl
+- [ ] Rollback tested (helm rollback works)
+
+---
+
+## Common Operations
+
+### Deploy Application
 ```bash
-kubectl describe deployment <app-name>-<service-name>
-kubectl get events --sort-by='.lastTimestamp'
+helm install todo-app helm-charts/todo-app -f helm-charts/todo-app/values-dev.yaml
 ```
 
-### Resource Issues
+### Update Deployment
 ```bash
-kubectl top nodes
-kubectl top pods
-kubectl describe nodes | grep -A 5 "Allocated resources"
+helm upgrade todo-app helm-charts/todo-app -f helm-charts/todo-app/values-dev.yaml
 ```
 
-### Rollback
+### Rollback to Previous
 ```bash
-kubectl rollout undo deployment/<app-name>-<service-name>
-kubectl rollout status deployment/<app-name>-<service-name>
+helm rollback todo-app
+```
+
+### Scale Manual
+```bash
+kubectl scale deployment/backend --replicas=5
+```
+
+### Monitor Rollout
+```bash
+kubectl rollout status deployment/backend -w
+```
+
+### View Logs
+```bash
+kubectl logs -f deployment/backend
+```
+
+### Debug Pod
+```bash
+kubectl describe pod <pod-name>
+kubectl exec -it <pod-name> -- /bin/bash
 ```
 
 ---
 
-## References
+## Anti-Patterns to Avoid
 
-- Phase IV Constitution: `.specify/memory/phase-4-constitution.md` (Section III)
-- Skill: `.specify/skills/k8s-troubleshoot.skill.md`
-- Example: `k8s/backend-deployment.yaml`
+| Anti-Pattern | Problem | Solution |
+|--------------|---------|----------|
+| Only limits, no requests | Scheduler can't guarantee resources | Set both requests and limits |
+| Using `latest` tag in production | Rollbacks fail, versions unknown | Use specific version tags |
+| No health probes | Dead containers stay running | Implement /health and /ready |
+| All pods on one node | Node failure = total outage | Use 2+ replicas with affinity |
+| Hardcoded configuration | Can't change without rebuilding | Use ConfigMap + Secrets |
+| No resource limits | Pod can starve others | Set memory and CPU limits |
+| Stateful services | Doesn't scale; loses data | Use databases for persistence |
+| Manual deployments | Error-prone, inconsistent | Use Helm or CI/CD |
 
 ---
 
-**Blueprint Version:** 1.0.0 | **Phase:** IV | **Last Updated:** 2026-01-03
+## References & Links
+
+- **Kubernetes Docs**: https://kubernetes.io/docs/
+- **Helm Docs**: https://helm.sh/docs/
+- **This Skill**: `.claude/skills/k8s-troubleshooting/`
+- **Phase IV Spec**: `specs/003-k8s-deployment/`
+- **Example Manifests**: `helm-charts/todo-app/templates/`
+
+---
+
+**Status**: ✅ Production-Ready
+**Last Updated**: 2025-01-08
+**Based on**: Evolution of TODO Phase IV Kubernetes Deployment

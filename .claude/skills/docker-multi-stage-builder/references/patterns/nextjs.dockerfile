@@ -1,0 +1,196 @@
+# =============================================================================
+# Multi-Stage Dockerfile for Next.js Frontend (Production-Ready)
+# =============================================================================
+# Build: docker build \
+#          --build-arg NEXT_PUBLIC_API_URL="http://localhost:8000" \
+#          --build-arg NEXT_PUBLIC_AUTH_SECRET="your-secret" \
+#          -t myapp-frontend .
+# Run:   docker run -p 3000:3000 myapp-frontend
+# =============================================================================
+
+# =============================================================================
+# Stage 1: Dependencies - Install all dependencies
+# =============================================================================
+FROM node:20-alpine AS dependencies
+
+# Set working directory
+WORKDIR /app
+
+# Install dependencies based on package manager
+# Copy package files for layer caching
+# If package.json unchanged, Docker reuses cached node_modules
+COPY package.json package-lock.json* ./
+
+# Install dependencies
+# --legacy-peer-deps: Allow React 19 with libraries that specify React 18 peer deps
+# OR use npm ci for production (faster, more reliable)
+RUN npm install --legacy-peer-deps
+
+# =============================================================================
+# Stage 2: Builder - Build Next.js application
+# =============================================================================
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy dependencies from previous stage
+# Reuses node_modules without reinstalling
+COPY --from=dependencies /app/node_modules ./node_modules
+
+# Copy application source code
+COPY . .
+
+# Build arguments (passed from docker build or docker-compose.yml)
+# SECURITY: Never commit secrets! Pass them at build time via --build-arg
+# Example: docker build --build-arg NEXT_PUBLIC_AUTH_SECRET="your-secret" ...
+ARG NEXT_PUBLIC_API_URL=http://localhost:8000
+ARG NEXT_PUBLIC_AUTH_SECRET
+ARG NEXT_PUBLIC_AUTH_URL=http://localhost:3000/api/auth
+
+# Set environment variables for build
+# These are baked into the static bundle (NEXT_PUBLIC_* are exposed to browser)
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_AUTH_SECRET=${NEXT_PUBLIC_AUTH_SECRET}
+ENV NEXT_PUBLIC_AUTH_URL=${NEXT_PUBLIC_AUTH_URL}
+
+# Disable Next.js telemetry
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Build Next.js application
+# This creates optimized production build in .next/ directory
+# - Minifies JavaScript
+# - Optimizes images
+# - Generates static pages
+# - Creates standalone output (includes only necessary dependencies)
+RUN npm run build
+
+# =============================================================================
+# Stage 3: Runner - Minimal production image
+# =============================================================================
+FROM node:20-alpine AS runner
+
+# Metadata labels
+LABEL maintainer="team@example.com"
+LABEL description="Next.js Frontend for Production Application"
+LABEL version="1.0.0"
+LABEL org.opencontainers.image.source="https://github.com/org/repo"
+
+WORKDIR /app
+
+# Set NODE_ENV to production
+# This enables production optimizations in Next.js
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Create non-root user for security
+# --system: Create a system user (no password)
+# --uid 1001: Explicit UID for consistency
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
+
+# Copy public assets (if any)
+# Public directory is served as-is (images, fonts, etc.)
+COPY --from=builder /app/public ./public
+
+# Copy Next.js build output
+# Set correct ownership for non-root user
+# - .next/standalone: Minimal server with only necessary dependencies
+# - .next/static: Static assets (JS, CSS, images)
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Switch to non-root user
+# CRITICAL: All subsequent commands run as 'nextjs' user (UID 1001)
+USER nextjs
+
+# Expose port (configurable via PORT environment variable)
+# Default: 3000
+# Note: This is documentation only; doesn't actually publish the port
+EXPOSE 3000
+
+# Environment variables (can be overridden at runtime)
+# PORT: Server listens on this port
+# HOSTNAME: Bind address (0.0.0.0 = accept external connections)
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+# Health check (ensures container is healthy)
+# --interval=30s: Check every 30 seconds
+# --timeout=10s: Timeout after 10 seconds
+# --start-period=60s: Grace period for app startup (Next.js takes longer to start)
+# --retries=3: Mark unhealthy after 3 failed checks
+# Uses Node.js built-in http module (no dependencies required)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:${PORT:-3000}/', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+
+# Default command: Start Next.js server
+# server.js is generated by Next.js standalone output
+# It includes a minimal HTTP server with only necessary dependencies
+CMD ["node", "server.js"]
+
+# =============================================================================
+# Build and Run Instructions
+# =============================================================================
+#
+# 1. Build image (with build arguments):
+#    docker build \
+#      --build-arg NEXT_PUBLIC_API_URL="http://localhost:8000" \
+#      --build-arg NEXT_PUBLIC_AUTH_SECRET="your-secret" \
+#      --build-arg NEXT_PUBLIC_AUTH_URL="http://localhost:3000/api/auth" \
+#      -t myapp-frontend .
+#
+# 2. Run container (development):
+#    docker run -p 3000:3000 myapp-frontend
+#
+# 3. Run container (production with custom port):
+#    docker run -d \
+#      -p 80:3000 \
+#      -e PORT=3000 \
+#      --name myapp-frontend \
+#      myapp-frontend
+#
+# 4. Check health:
+#    curl http://localhost:3000/
+#
+# 5. View logs:
+#    docker logs -f myapp-frontend
+#
+# =============================================================================
+# Expected Image Size: ~200MB (with Next.js standalone output)
+# =============================================================================
+# - Dependencies stage: ~450MB (includes all node_modules)
+# - Builder stage: ~500MB (includes build output)
+# - Runtime stage: ~200MB (only standalone output + static assets)
+# - Size reduction: 60% smaller than single-stage build
+# =============================================================================
+
+# =============================================================================
+# next.config.js Requirements
+# =============================================================================
+# For standalone output to work, add this to your next.config.js:
+#
+# module.exports = {
+#   output: 'standalone',  // ← CRITICAL for Docker builds
+#   // ... other config
+# }
+#
+# Without this, .next/standalone will not be generated, and the build will fail.
+# =============================================================================
+
+# =============================================================================
+# .dockerignore Recommendations
+# =============================================================================
+# Create .dockerignore with:
+#
+# node_modules
+# .next
+# .git
+# .env
+# .env.local
+# *.md
+# .vscode
+# .idea
+# __tests__
+# *.test.ts
+# *.test.tsx
+# =============================================================================

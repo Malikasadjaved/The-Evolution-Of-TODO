@@ -285,16 +285,26 @@ This is a monorepo with infrastructure code at repository root:
 
 ---
 
-## Phase 12: Cloud-Native Blueprints (Hackathon Bonus)
+## Phase 12: Cloud-Native Blueprints (Hackathon Bonus) ✅ COMPLETE
 
 **Purpose**: Extract Phase IV learnings into reusable skills and blueprints per Section XII of the constitution
 
-- [ ] T136 [P] Create Helm Chart Generator Skill - Generate .specify/skills/helm-chart-gen.skill.md documenting the multi-service template pattern
-- [ ] T137 [P] Create Docker Multi-Stage Builder Skill - Generate .specify/skills/docker-multistage.skill.md with best practices for Python/Node optimization
-- [ ] T138 [P] Create Kubernetes Troubleshooting Skill - Generate .specify/skills/k8s-troubleshoot.skill.md with common diagnostic workflows
-- [ ] T139 [P] Create Kubernetes Deployment Blueprint - Generate .specify/blueprints/k8s-deployment.blueprint.md for standard stateless services
+- [X] T136 [P] Create Helm Chart Generator Skill - Already exists at `.claude/skills/helm-chart-generator/`
+- [X] T137 [P] Create Docker Multi-Stage Builder Skill - Already exists at `.claude/skills/docker-multi-stage-builder/`
+- [X] T138 [P] Create Kubernetes Troubleshooting Skill - ✅ COMPLETE
+  - SKILL.md: Comprehensive troubleshooting workflows for 8 common scenarios
+  - references/diagnostic-workflows.md: Decision trees for each scenario
+  - references/kubectl-patterns.md: kubectl command patterns and shortcuts
+  - references/common-errors.md: Common error messages and solutions
+  - references/kubernetes-docs-links.md: Official documentation links
+  - scripts/k8s-diagnose.sh: Automated diagnostic script (optional)
 
-**Checkpoint**: Cloud-native blueprints completed (+200 points)
+- [X] T139 [P] Create Kubernetes Deployment Blueprint - ✅ COMPLETE
+  - Location: `.specify/blueprints/k8s-deployment.blueprint.md`
+  - Covers: Docker multi-stage builds, Deployments, Services, Health monitoring, Resource management, Helm charts, HPA, automation scripts
+  - Includes: Quality checklist, anti-patterns, deployment workflows, customization guide
+
+**Checkpoint**: Cloud-native blueprints completed (+200 points) ✅
 
 ---
 

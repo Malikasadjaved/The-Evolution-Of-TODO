@@ -116,9 +116,11 @@ backend/.env
 frontend-web/.env
 frontend-chatbot/.env
 **/.env
+.env.secrets
 
 # Allow .env.example (safe to commit - placeholders only)
 !**/.env.example
+!.env.secrets.example
 
 # Kubernetes Secrets (Phase IV - CRITICAL: Never commit actual secrets)
 k8s/secret.yaml
