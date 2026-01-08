@@ -1,0 +1,64 @@
+{{- $global := .Values.global | default (dict) }}
+{{- $backend := .Values.backend | default (dict) }}
+{{- $web := (default .Values.web .Values.frontendWeb) | default (dict) }}
+{{- $chatbot := (default .Values.chatbot .Values.frontendChatbot) | default (dict) }}
+
+Todo Application deployed successfully!
+
+Release Information:
+  Name: {{ .Release.Name }}
+  Namespace: {{ .Release.Namespace }}
+  Version: {{ .Chart.Version }}
+  Environment: {{ default "development" $global.environment }}
+
+Services Deployed:
+{{- if eq $backend.service.type "ClusterIP" }}
+  - Backend API (ClusterIP - internal only)
+{{- end }}
+{{- if eq $web.service.type "NodePort" }}
+  - Frontend Web UI (NodePort {{ default "30000" $web.service.nodePort }})
+{{- end }}
+{{- if eq $chatbot.service.type "NodePort" }}
+  - Chatbot UI (NodePort {{ default "30001" $chatbot.service.nodePort }})
+{{- end }}
+
+Next Steps:
+
+1. Check deployment status:
+   kubectl get pods -l app.kubernetes.io/instance={{ .Release.Name }}
+
+2. Wait for all pods to be Running:
+   kubectl wait --for=condition=Ready pods -l app.kubernetes.io/instance={{ .Release.Name }} --timeout=5m
+
+3. Access services:
+{{- if eq $web.service.type "NodePort" }}
+   Frontend Web UI:
+   minikube service {{ include "todo-app.fullname" . }}-frontend-web --url
+{{- end }}
+{{- if eq $chatbot.service.type "NodePort" }}
+   Chatbot UI:
+   minikube service {{ include "todo-app.fullname" . }}-frontend-chatbot --url
+{{- end }}
+{{- if eq $backend.service.type "ClusterIP" }}
+   Backend API (via port-forward):
+   kubectl port-forward svc/{{ include "todo-app.fullname" . }}-backend {{ $backend.service.port }}:{{ $backend.service.port }}
+{{- end }}
+
+4. View logs:
+   kubectl logs -f deployment/{{ include "todo-app.fullname" . }}-backend
+   kubectl logs -f deployment/{{ include "todo-app.fullname" . }}-frontend-web
+   kubectl logs -f deployment/{{ include "todo-app.fullname" . }}-frontend-chatbot
+
+5. Monitor resources:
+   kubectl top pods -l app.kubernetes.io/instance={{ .Release.Name }}
+
+Important Notes:
+  - Ensure Kubernetes Secret "app-secrets" exists with DATABASE_URL, BETTER_AUTH_SECRET, OPENAI_API_KEY
+  - Pods in CrashLoopBackOff usually indicate missing env vars or secrets; inspect logs for details
+  - Use "helm upgrade {{ .Release.Name }} helm-charts/todo-app" to update deployment
+  - Use "helm rollback {{ .Release.Name }}" to revert to a previous release
+
+Documentation:
+  - docs/DEPLOYMENT.md
+  - docs/TROUBLESHOOTING.md
+  - specs/003-k8s-deployment/quickstart.md

@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-chatbot
+  labels:
+    app: frontend-chatbot
+    tier: frontend
+    phase: iv
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend-chatbot
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: frontend-chatbot
+        tier: frontend
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+      containers:
+      - name: frontend-chatbot
+        image: todo-frontend-chatbot:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3001
+          protocol: TCP
+          name: http
+        env:
+        # Environment variables will be injected from ConfigMap and Secrets
+        - name: PORT
+          value: "3001"
+        - name: HOSTNAME
+          value: "0.0.0.0"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3001
+          initialDelaySeconds: 15
+          periodSeconds: 30
+          timeoutSeconds: 3
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3001
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3

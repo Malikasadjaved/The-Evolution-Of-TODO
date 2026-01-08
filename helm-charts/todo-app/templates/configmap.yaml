@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "todo-app.fullname" . }}-backend-config
+  labels:
+    {{- include "todo-app.backend.labels" . | nindent 4 }}
+data:
+  FRONTEND_URL: {{ .Values.backend.env.FRONTEND_URL | quote }}
+  LOG_LEVEL: {{ .Values.backend.env.LOG_LEVEL | quote }}
+  ENVIRONMENT: {{ .Values.backend.env.ENVIRONMENT | quote }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "todo-app.fullname" . }}-frontend-web-config
+  labels:
+    {{- include "todo-app.frontend-web.labels" . | nindent 4 }}
+data:
+  NEXT_PUBLIC_API_URL: {{ .Values.frontendWeb.env.NEXT_PUBLIC_API_URL | quote }}
+  API_URL: {{ .Values.frontendWeb.env.API_URL | default (printf "http://%s-backend:8000" (include "todo-app.fullname" .)) | quote }}
+  BETTER_AUTH_URL: {{ .Values.frontendWeb.env.BETTER_AUTH_URL | quote }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "todo-app.fullname" . }}-frontend-chatbot-config
+  labels:
+    {{- include "todo-app.frontend-chatbot.labels" . | nindent 4 }}
+data:
+  VITE_API_URL: {{ .Values.frontendChatbot.env.VITE_API_URL | quote }}

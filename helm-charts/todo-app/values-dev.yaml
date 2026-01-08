@@ -1,0 +1,60 @@
+# Development values for Minikube deployment
+# Override production defaults from values.yaml
+
+global:
+  environment: development
+
+backend:
+  image:
+    repository: todo-backend
+    tag: latest
+    pullPolicy: IfNotPresent  # Use Minikube Docker daemon
+
+  replicaCount: 2
+
+  service:
+    type: NodePort
+    port: 8000
+    nodePort: 30002
+
+  env:
+    FRONTEND_URL: "*"
+    LOG_LEVEL: "INFO"  # More verbose for development
+    ENVIRONMENT: "development"
+
+frontendWeb:
+  image:
+    repository: todo-frontend-web
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  replicaCount: 2
+
+  env:
+    NEXT_PUBLIC_API_URL: "http://192.168.49.2:30002"  # Backend NodePort (browser-accessible)
+    API_URL: "http://todo-app-backend:8000"  # Internal service name (server-side auth proxy)
+    NEXT_PUBLIC_BETTER_AUTH_URL: "http://192.168.49.2:30000/api/auth"
+    BETTER_AUTH_URL: "http://192.168.49.2:30000/api/auth"
+
+frontendChatbot:
+  image:
+    repository: todo-frontend-chatbot
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  replicaCount: 2
+
+  env:
+    VITE_API_URL: "http://192.168.49.2:30002"  # Backend NodePort (browser-accessible)
+
+# Autoscaling disabled for development
+autoscaling:
+  enabled: false
+
+# Ingress disabled for Minikube (use NodePort instead)
+ingress:
+  enabled: false
+
+# Monitoring disabled for development
+monitoring:
+  enabled: false

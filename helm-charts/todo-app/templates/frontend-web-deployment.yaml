@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "todo-app.fullname" . }}-frontend-web
+  labels:
+    {{- include "todo-app.frontend-web.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.frontendWeb.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "todo-app.frontend-web.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        {{- include "todo-app.frontend-web.selectorLabels" . | nindent 8 }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+      containers:
+      - name: frontend-web
+        image: "{{ .Values.frontendWeb.image.repository }}:{{ .Values.frontendWeb.image.tag }}"
+        imagePullPolicy: {{ .Values.frontendWeb.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.frontendWeb.service.port }}
+          protocol: TCP
+          name: http
+        env:
+        # Static environment variables
+        - name: PORT
+          value: {{ .Values.frontendWeb.service.port | quote }}
+        - name: HOSTNAME
+          value: "0.0.0.0"
+        envFrom:
+        - configMapRef:
+            name: {{ include "todo-app.fullname" . }}-frontend-web-config
+        - secretRef:
+            name: {{ include "todo-app.secretName" . }}
+        resources:
+          {{- toYaml .Values.frontendWeb.resources | nindent 10 }}
+        livenessProbe:
+          httpGet:
+            path: /
+            port: {{ .Values.frontendWeb.service.port }}
+          initialDelaySeconds: 15
+          periodSeconds: 30
+          timeoutSeconds: 3
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: {{ .Values.frontendWeb.service.port }}
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3

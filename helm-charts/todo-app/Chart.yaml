@@ -1,0 +1,17 @@
+apiVersion: v2
+name: todo-app
+description: Kubernetes deployment for Todo Application (Phase IV)
+type: application
+version: 1.0.0
+appVersion: "phase-4"
+keywords:
+  - todo
+  - task-management
+  - fastapi
+  - nextjs
+  - ai-chatbot
+maintainers:
+  - name: Todo App Team
+    email: team@todo-app.com
+sources:
+  - https://github.com/your-org/todo-app

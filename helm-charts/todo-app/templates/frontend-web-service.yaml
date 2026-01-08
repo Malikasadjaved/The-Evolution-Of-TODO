@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "todo-app.fullname" . }}-frontend-web
+  labels:
+    {{- include "todo-app.frontend-web.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.frontendWeb.service.type }}
+  selector:
+    {{- include "todo-app.frontend-web.selectorLabels" . | nindent 4 }}
+  ports:
+  - name: http
+    protocol: TCP
+    port: {{ .Values.frontendWeb.service.port }}
+    targetPort: {{ .Values.frontendWeb.service.port }}
+    {{- if eq .Values.frontendWeb.service.type "NodePort" }}
+    nodePort: {{ .Values.frontendWeb.service.nodePort }}
+    {{- end }}
