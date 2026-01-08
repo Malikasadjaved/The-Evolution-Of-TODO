@@ -1,0 +1,41 @@
+{{- if .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "todo-app.fullname" . }}-ingress
+  labels:
+    {{- include "todo-app.labels" . | nindent 4 }}
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+  # Frontend Web Rule
+  - host: {{ .Values.ingress.host }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ include "todo-app.fullname" . }}-frontend-web
+            port:
+              number: {{ .Values.frontendWeb.service.port }}
+
+  # Backend API Rule
+  - host: {{ .Values.ingress.backendHost }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ include "todo-app.fullname" . }}-backend
+            port:
+              number: {{ .Values.backend.service.port }}
+{{- end }}

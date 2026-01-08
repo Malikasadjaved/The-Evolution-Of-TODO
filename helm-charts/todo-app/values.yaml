@@ -1,0 +1,151 @@
+# Default values for todo-app Helm chart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Global configuration applied across all services
+global:
+  phase: iv
+  environment: development
+
+secrets:
+  name: app-secrets
+
+# Backend API Configuration
+backend:
+  nameOverride: ""
+  fullnameOverride: ""
+  replicaCount: 2
+  image:
+    repository: todo-backend
+    pullPolicy: IfNotPresent
+    # Overridden by tag in command line or Chart appVersion
+    tag: "latest"
+  service:
+    type: ClusterIP
+    port: 8000
+    nodePort: 30800
+  env:
+    FRONTEND_URL: "http://192.168.49.2:3000"
+    ALLOWED_ORIGINS: "http://192.168.49.2:3000,http://192.168.49.2:8000"
+    LOG_LEVEL: "INFO"
+    ENVIRONMENT: "development"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  livenessProbe:
+    path: /health
+    port: 8000
+    initialDelaySeconds: 10
+    periodSeconds: 30
+  readinessProbe:
+    path: /ready
+    port: 8000
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+
+# Frontend Web Configuration (Phase 2)
+frontendWeb:
+  nameOverride: ""
+  fullnameOverride: ""
+  replicaCount: 2
+  image:
+    repository: todo-frontend-web
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  service:
+    type: NodePort
+    port: 3000
+    nodePort: 30000
+  env:
+    NEXT_PUBLIC_API_URL: "http://192.168.49.2:8000"
+    BETTER_AUTH_URL: "http://192.168.49.2:3000/api/auth"
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  livenessProbe:
+    path: /
+    port: 3000
+    initialDelaySeconds: 15
+    periodSeconds: 30
+  readinessProbe:
+    path: /
+    port: 3000
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1001
+
+# Frontend Chatbot Configuration (Phase 3)
+frontendChatbot:
+  nameOverride: ""
+  fullnameOverride: ""
+  replicaCount: 2
+  image:
+    repository: todo-frontend-chatbot
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  service:
+    type: NodePort
+    port: 3001
+    nodePort: 30001
+  env:
+    VITE_API_URL: "http://localhost:8000"
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  livenessProbe:
+    path: /
+    port: 3001
+    initialDelaySeconds: 15
+    periodSeconds: 30
+  readinessProbe:
+    path: /
+    port: 3001
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1001
+
+# Ingress Configuration
+ingress:
+  enabled: false  # Set to true to use Ingress instead of NodePort
+  className: nginx
+  host: "192.168.49.2"  # Minikube IP
+  backendHost: "api.192.168.49.2"  # Backend subdomain (requires /etc/hosts entry)
+
+# Configuration for ConfigMaps (Non-secret)
+config:
+  backend:
+    FRONTEND_URL: "http://192.168.49.2:3000"
+    LOG_LEVEL: "INFO"
+    ENVIRONMENT: "development"
+  frontendWeb:
+    NEXT_PUBLIC_API_URL: "http://192.168.49.2:8000"
+    BETTER_AUTH_URL: "http://192.168.49.2:3000/api/auth"
+  frontendChatbot:
+    VITE_API_URL: "http://192.168.49.2:8000"
+
+# RBAC and Service Accounts
+serviceAccount:
+  create: true
+  annotations: {}
+  name: "todo-app-sa"
+
+# Other common settings can be added here as needed

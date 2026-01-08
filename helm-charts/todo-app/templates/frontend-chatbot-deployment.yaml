@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "todo-app.fullname" . }}-frontend-chatbot
+  labels:
+    {{- include "todo-app.frontend-chatbot.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.frontendChatbot.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "todo-app.frontend-chatbot.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        {{- include "todo-app.frontend-chatbot.selectorLabels" . | nindent 8 }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+      containers:
+      - name: frontend-chatbot
+        image: "{{ .Values.frontendChatbot.image.repository }}:{{ .Values.frontendChatbot.image.tag }}"
+        imagePullPolicy: {{ .Values.frontendChatbot.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.frontendChatbot.service.port }}
+          protocol: TCP
+          name: http
+        env:
+        # Static environment variables
+        - name: PORT
+          value: {{ .Values.frontendChatbot.service.port | quote }}
+        - name: HOSTNAME
+          value: "0.0.0.0"
+        - name: VITE_OPENAI_API_KEY # Alias for OpenAI key
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "todo-app.secretName" . }}
+              key: OPENAI_API_KEY
+        envFrom:
+        - configMapRef:
+            name: {{ include "todo-app.fullname" . }}-frontend-chatbot-config
+        - secretRef:
+            name: {{ include "todo-app.secretName" . }}
+        resources:
+          {{- toYaml .Values.frontendChatbot.resources | nindent 10 }}
+        livenessProbe:
+          httpGet:
+            path: /
+            port: {{ .Values.frontendChatbot.service.port }}
+          initialDelaySeconds: 15
+          periodSeconds: 30
+          timeoutSeconds: 3
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: {{ .Values.frontendChatbot.service.port }}
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3

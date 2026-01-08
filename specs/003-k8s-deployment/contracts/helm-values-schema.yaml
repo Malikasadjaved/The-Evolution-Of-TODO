@@ -1,0 +1,197 @@
+# Helm Chart Values Schema
+# This file defines the contract for values.yaml configuration
+
+# Global configuration (shared across all services)
+global:
+  environment: string  # "development" | "production"
+  imageRegistry: string  # Optional: container registry URL (default: local Minikube)
+
+# Backend service configuration
+backend:
+  image:
+    repository: string  # Image name (default: "todo-backend")
+    tag: string         # Image tag (default: "latest")
+    pullPolicy: string  # "IfNotPresent" | "Always" | "Never"
+
+  replicaCount: integer  # Number of replicas (default: 2)
+
+  resources:
+    requests:
+      memory: string  # K8s format (default: "256Mi")
+      cpu: string     # K8s format (default: "250m")
+    limits:
+      memory: string  # K8s format (default: "512Mi")
+      cpu: string     # K8s format (default: "500m")
+
+  service:
+    type: string  # "ClusterIP" (internal only)
+    port: integer # Service port (default: 8000)
+
+  # Environment variables (non-secret)
+  env:
+    FRONTEND_URL: string       # Frontend URL for CORS (default: "http://localhost:3000")
+    ALLOWED_ORIGINS: string    # CORS allowed origins (default: "http://localhost:3000")
+    LOG_LEVEL: string          # Logging level (default: "INFO")
+    ENVIRONMENT: string        # App environment (default: "development")
+
+# Frontend-Web service configuration
+frontendWeb:
+  image:
+    repository: string  # Image name (default: "todo-frontend-web")
+    tag: string         # Image tag (default: "latest")
+    pullPolicy: string  # "IfNotPresent" | "Always" | "Never"
+
+  replicaCount: integer  # Number of replicas (default: 2)
+
+  resources:
+    requests:
+      memory: string  # K8s format (default: "128Mi")
+      cpu: string     # K8s format (default: "100m")
+    limits:
+      memory: string  # K8s format (default: "256Mi")
+      cpu: string     # K8s format (default: "200m")
+
+  service:
+    type: string      # "NodePort" (external access)
+    port: integer     # Service port (default: 3000)
+    nodePort: integer # External port (default: 30000)
+
+  # Environment variables (non-secret)
+  env:
+    NEXT_PUBLIC_API_URL: string  # Backend API URL (default: "http://backend-service:8000")
+    BETTER_AUTH_URL: string       # Auth URL (default: "http://localhost:3000")
+
+# Frontend-Chatbot service configuration
+frontendChatbot:
+  image:
+    repository: string  # Image name (default: "todo-frontend-chatbot")
+    tag: string         # Image tag (default: "latest")
+    pullPolicy: string  # "IfNotPresent" | "Always" | "Never"
+
+  replicaCount: integer  # Number of replicas (default: 2)
+
+  resources:
+    requests:
+      memory: string  # K8s format (default: "128Mi")
+      cpu: string     # K8s format (default: "100m")
+    limits:
+      memory: string  # K8s format (default: "256Mi")
+      cpu: string     # K8s format (default: "200m")
+
+  service:
+    type: string      # "NodePort" (external access)
+    port: integer     # Service port (default: 3001)
+    nodePort: integer # External port (default: 30001)
+
+  # Environment variables (non-secret)
+  env:
+    VITE_API_URL: string  # Backend API URL (default: "http://backend-service:8000")
+
+# Secrets (provided externally, never in values.yaml)
+secrets:
+  # DO NOT POPULATE THESE IN values.yaml
+  # Create manually: kubectl create secret generic app-secrets --from-literal=...
+  databaseUrl: ""        # PostgreSQL connection string (Neon)
+  betterAuthSecret: ""   # 43-character auth secret (shared)
+  openaiApiKey: ""       # OpenAI API key (sk-...)
+
+# Autoscaling (optional, Phase V)
+autoscaling:
+  enabled: boolean  # Enable HorizontalPodAutoscaler (default: false)
+  backend:
+    minReplicas: integer  # Minimum replicas (default: 2)
+    maxReplicas: integer  # Maximum replicas (default: 5)
+    targetCPUUtilizationPercentage: integer  # CPU threshold (default: 70)
+  frontendWeb:
+    minReplicas: integer
+    maxReplicas: integer
+    targetCPUUtilizationPercentage: integer
+  frontendChatbot:
+    minReplicas: integer
+    maxReplicas: integer
+    targetCPUUtilizationPercentage: integer
+
+# Ingress (optional, Phase V - cloud deployment with custom domain)
+ingress:
+  enabled: boolean      # Enable Ingress (default: false for Minikube)
+  className: string     # Ingress class (default: "nginx")
+  annotations: object   # Additional annotations
+  hosts:
+    - host: string      # Domain name (e.g., "todo.example.com")
+      paths:
+        - path: string
+          pathType: string
+          service:
+            name: string
+            port: integer
+  tls: array            # TLS certificates
+
+# Monitoring (optional, Phase V - Prometheus integration)
+monitoring:
+  enabled: boolean  # Enable ServiceMonitor (default: false)
+  interval: string  # Scrape interval (default: "30s")
+
+# Example values-dev.yaml:
+# ---
+# global:
+#   environment: development
+#
+# backend:
+#   image:
+#     repository: todo-backend
+#     tag: latest
+#     pullPolicy: IfNotPresent
+#   replicaCount: 2
+#   resources:
+#     requests: {memory: "256Mi", cpu: "250m"}
+#     limits: {memory: "512Mi", cpu: "500m"}
+#   service:
+#     type: ClusterIP
+#     port: 8000
+#   env:
+#     FRONTEND_URL: "http://localhost:3000"
+#     ALLOWED_ORIGINS: "http://localhost:3000"
+#     LOG_LEVEL: "INFO"
+#     ENVIRONMENT: "development"
+#
+# frontendWeb:
+#   image:
+#     repository: todo-frontend-web
+#     tag: latest
+#     pullPolicy: IfNotPresent
+#   replicaCount: 2
+#   resources:
+#     requests: {memory: "128Mi", cpu: "100m"}
+#     limits: {memory: "256Mi", cpu: "200m"}
+#   service:
+#     type: NodePort
+#     port: 3000
+#     nodePort: 30000
+#   env:
+#     NEXT_PUBLIC_API_URL: "http://backend-service:8000"
+#     BETTER_AUTH_URL: "http://localhost:3000"
+#
+# frontendChatbot:
+#   image:
+#     repository: todo-frontend-chatbot
+#     tag: latest
+#     pullPolicy: IfNotPresent
+#   replicaCount: 2
+#   resources:
+#     requests: {memory: "128Mi", cpu: "100m"}
+#     limits: {memory: "256Mi", cpu: "200m"}
+#   service:
+#     type: NodePort
+#     port: 3001
+#     nodePort: 30001
+#   env:
+#     VITE_API_URL: "http://backend-service:8000"
+#
+# autoscaling:
+#   enabled: false
+#
+# ingress:
+#   enabled: false
+#
+# monitoring:
+#   enabled: false

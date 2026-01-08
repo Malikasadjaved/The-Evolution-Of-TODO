@@ -1,0 +1,146 @@
+# Simple Kubernetes Deployment for Todo App
+# Uses ClusterIP services + port-forward (no NodePort issues)
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: todo-app
+
+---
+# Backend Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todo-app-backend
+  namespace: todo-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: todo-app-backend
+  template:
+    metadata:
+      labels:
+        app: todo-app-backend
+    spec:
+      containers:
+      - name: backend
+        image: todo-app-backend:latest
+        imagePullPolicy: Never  # Use local Minikube image
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: todo-app-secrets
+              key: database-url
+        - name: BETTER_AUTH_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: todo-app-secrets
+              key: better-auth-secret
+        - name: BETTER_AUTH_URL
+          value: "http://localhost:8000/api/auth"
+        - name: FRONTEND_URL
+          value: "http://localhost:3000"
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: todo-app-secrets
+              key: openai-api-key
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+
+---
+# Backend Service (ClusterIP)
+apiVersion: v1
+kind: Service
+metadata:
+  name: todo-app-backend
+  namespace: todo-app
+spec:
+  type: ClusterIP  # Internal only, use port-forward for access
+  selector:
+    app: todo-app-backend
+  ports:
+  - port: 8000
+    targetPort: 8000
+    name: http
+
+---
+# Frontend Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todo-app-frontend
+  namespace: todo-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: todo-app-frontend
+  template:
+    metadata:
+      labels:
+        app: todo-app-frontend
+    spec:
+      containers:
+      - name: frontend
+        image: todo-app-frontend:latest
+        imagePullPolicy: Never  # Use local Minikube image
+        ports:
+        - containerPort: 3000
+          name: http
+        env:
+        - name: NEXT_PUBLIC_API_URL
+          value: "http://localhost:8000"  # Browser requests (via port-forward)
+        - name: API_URL
+          value: "http://todo-app-backend:8000"  # Server-side requests (Kubernetes service)
+        - name: BETTER_AUTH_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: todo-app-secrets
+              key: better-auth-secret
+        - name: BETTER_AUTH_URL
+          value: "http://localhost:3000/api/auth"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 15
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+
+---
+# Frontend Service (ClusterIP)
+apiVersion: v1
+kind: Service
+metadata:
+  name: todo-app-frontend
+  namespace: todo-app
+spec:
+  type: ClusterIP  # Internal only, use port-forward for access
+  selector:
+    app: todo-app-frontend
+  ports:
+  - port: 3000
+    targetPort: 3000
+    name: http

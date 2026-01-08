@@ -1,0 +1,286 @@
+# =============================================================================
+# Kubernetes Deployment Template for Full-Stack Applications
+# =============================================================================
+# Usage:
+#   1. Replace <PROJECT> with your project name (e.g., todo-app)
+#   2. Replace <BACKEND_PORT> with backend port (e.g., 8000)
+#   3. Replace <FRONTEND_PORT> with frontend port (e.g., 3000)
+#   4. Update secret keys to match your .env file
+#   5. Adjust resource limits based on your needs
+#   6. Apply: kubectl apply -f deployment.yaml
+# =============================================================================
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: <PROJECT>-app
+
+---
+# =============================================================================
+# Backend Deployment
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: <PROJECT>-backend
+  namespace: <PROJECT>-app
+  labels:
+    app: <PROJECT>-backend
+    tier: backend
+spec:
+  replicas: 1  # Increase for production (2-3 recommended)
+  selector:
+    matchLabels:
+      app: <PROJECT>-backend
+  template:
+    metadata:
+      labels:
+        app: <PROJECT>-backend
+        tier: backend
+    spec:
+      containers:
+      - name: backend
+        image: <PROJECT>-backend:latest
+        imagePullPolicy: Never  # Use local Minikube images
+        ports:
+        - containerPort: <BACKEND_PORT>
+          name: http
+          protocol: TCP
+        env:
+        # Database connection
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: <PROJECT>-secrets
+              key: database-url
+        # Authentication
+        - name: AUTH_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: <PROJECT>-secrets
+              key: auth-secret
+        - name: AUTH_URL
+          value: "http://localhost:<BACKEND_PORT>/api/auth"
+        # Frontend URL (for CORS)
+        - name: FRONTEND_URL
+          value: "http://localhost:<FRONTEND_PORT>"
+        # Optional: API keys
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: <PROJECT>-secrets
+              key: api-key
+              optional: true
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: <BACKEND_PORT>
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: <BACKEND_PORT>
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        # Resource limits (adjust based on needs)
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+---
+# =============================================================================
+# Backend Service (ClusterIP - Internal Only)
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: <PROJECT>-backend
+  namespace: <PROJECT>-app
+  labels:
+    app: <PROJECT>-backend
+    tier: backend
+spec:
+  type: ClusterIP  # Internal only, expose via port-forward
+  selector:
+    app: <PROJECT>-backend
+  ports:
+  - port: <BACKEND_PORT>
+    targetPort: <BACKEND_PORT>
+    protocol: TCP
+    name: http
+
+---
+# =============================================================================
+# Frontend Deployment
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: <PROJECT>-frontend
+  namespace: <PROJECT>-app
+  labels:
+    app: <PROJECT>-frontend
+    tier: frontend
+spec:
+  replicas: 1  # Increase for production (2-3 recommended)
+  selector:
+    matchLabels:
+      app: <PROJECT>-frontend
+  template:
+    metadata:
+      labels:
+        app: <PROJECT>-frontend
+        tier: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: <PROJECT>-frontend:latest
+        imagePullPolicy: Never  # Use local Minikube images
+        ports:
+        - containerPort: <FRONTEND_PORT>
+          name: http
+          protocol: TCP
+        env:
+        # CRITICAL: Dual API URL strategy
+        # NEXT_PUBLIC_API_URL: Browser requests (via port-forward)
+        - name: NEXT_PUBLIC_API_URL
+          value: "http://localhost:<BACKEND_PORT>"
+        # API_URL: Server-side requests (Kubernetes service DNS)
+        - name: API_URL
+          value: "http://<PROJECT>-backend:<BACKEND_PORT>"
+        # Authentication URLs
+        - name: NEXT_PUBLIC_AUTH_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: <PROJECT>-secrets
+              key: auth-secret
+        - name: NEXT_PUBLIC_AUTH_URL
+          value: "http://localhost:<FRONTEND_PORT>/api/auth"
+        # Optional: Other public env vars
+        - name: NEXT_PUBLIC_APP_NAME
+          value: "<PROJECT>"
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /
+            port: <FRONTEND_PORT>
+          initialDelaySeconds: 15
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: <FRONTEND_PORT>
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        # Resource limits
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+---
+# =============================================================================
+# Frontend Service (ClusterIP - Internal Only)
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: <PROJECT>-frontend
+  namespace: <PROJECT>-app
+  labels:
+    app: <PROJECT>-frontend
+    tier: frontend
+spec:
+  type: ClusterIP  # Internal only, expose via port-forward
+  selector:
+    app: <PROJECT>-frontend
+  ports:
+  - port: <FRONTEND_PORT>
+    targetPort: <FRONTEND_PORT>
+    protocol: TCP
+    name: http
+
+---
+# =============================================================================
+# Optional: ConfigMap for Non-Secret Configuration
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: <PROJECT>-config
+  namespace: <PROJECT>-app
+data:
+  LOG_LEVEL: "INFO"
+  ENVIRONMENT: "development"
+  TIMEZONE: "UTC"
+  # Add other non-sensitive config here
+
+---
+# =============================================================================
+# Notes and Best Practices
+# =============================================================================
+# 1. Secrets Management:
+#    - Create secrets before applying this manifest:
+#      kubectl create secret generic <PROJECT>-secrets \
+#        --namespace=<PROJECT>-app \
+#        --from-literal=database-url='postgresql://...' \
+#        --from-literal=auth-secret='your-secret-here'
+#
+# 2. Image Build:
+#    - Build images in Minikube to avoid duplicate storage:
+#      eval $(minikube docker-env)
+#      docker build -t <PROJECT>-backend:latest ./backend
+#      docker build -t <PROJECT>-frontend:latest ./frontend
+#
+# 3. Port-Forward Access:
+#    - Backend: kubectl port-forward -n <PROJECT>-app svc/<PROJECT>-backend <BACKEND_PORT>:<BACKEND_PORT>
+#    - Frontend: kubectl port-forward -n <PROJECT>-app svc/<PROJECT>-frontend <FRONTEND_PORT>:<FRONTEND_PORT>
+#
+# 4. Health Endpoints:
+#    - Backend must expose /health endpoint
+#    - Frontend health check uses root path (/)
+#    - Adjust paths if different in your app
+#
+# 5. Resource Limits:
+#    - Start with: 256Mi-512Mi memory, 250m-500m CPU
+#    - Monitor with: kubectl top pods -n <PROJECT>-app
+#    - Adjust based on actual usage
+#
+# 6. Scaling:
+#    - Horizontal: kubectl scale deployment <PROJECT>-backend --replicas=3 -n <PROJECT>-app
+#    - Vertical: Update resource limits and redeploy
+#    - Autoscaling: Use HorizontalPodAutoscaler (see production patterns)
+#
+# 7. Dual API URL Strategy:
+#    - NEXT_PUBLIC_API_URL: Used by browser (port-forward)
+#    - API_URL: Used by Next.js server (Kubernetes DNS)
+#    - This solves pod-to-pod communication issues
+#
+# 8. Security:
+#    - Never commit secrets to Git
+#    - Rotate auth-secret regularly
+#    - Use SSL for database connections (sslmode=require)
+#    - Consider network policies for production
+#
+# 9. Troubleshooting:
+#    - Pod logs: kubectl logs -n <PROJECT>-app deployment/<PROJECT>-backend
+#    - Pod shell: kubectl exec -n <PROJECT>-app -it deployment/<PROJECT>-backend -- /bin/sh
+#    - Events: kubectl describe pod -n <PROJECT>-app <pod-name>
+#    - Secrets: kubectl get secret -n <PROJECT>-app <PROJECT>-secrets -o yaml

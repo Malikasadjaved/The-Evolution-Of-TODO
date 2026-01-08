@@ -100,7 +100,7 @@ async def sign_up(request: SignUpRequest, session: Session = Depends(get_session
     logger.info(
         event="user_registered",
         message="New user registered successfully",
-        user_id=user.id,  # Will be hashed by StructuredLogger
+        user_id=user.id,
     )
 
     # Generate JWT token
@@ -118,7 +118,7 @@ async def sign_in(request: SignInRequest, session: Session = Depends(get_session
     logger.debug(
         event="sign_in_attempt",
         message="User sign-in attempt",
-        user_email_provided=bool(request.email),  # Boolean, not email
+        user_email_provided=bool(request.email),
     )
     try:
         # Find user by email
@@ -139,7 +139,7 @@ async def sign_in(request: SignInRequest, session: Session = Depends(get_session
         logger.info(
             event="user_signed_in",
             message="User signed in successfully",
-            user_id=user.id,  # Will be hashed by StructuredLogger
+            user_id=user.id,
         )
 
         # Generate JWT token
@@ -156,7 +156,6 @@ async def sign_in(request: SignInRequest, session: Session = Depends(get_session
             event="sign_in_error",
             message="Sign-in failed due to unexpected error",
             error_type=type(e).__name__,
-            # Do NOT log str(e) - may contain PII
         )
         raise HTTPException(
             status_code=500,

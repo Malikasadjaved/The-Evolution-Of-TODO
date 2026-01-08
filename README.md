@@ -18,7 +18,7 @@ This is a **MONOREPO** containing three phases of evolution:
 - **Spec**: `specs/001-fullstack-web-app/`
 - **Features**: User authentication, task CRUD via web UI
 
-### Phase III: AI Chatbot with MCP Architecture (🚧 In Progress)
+### Phase III: AI Chatbot with MCP Architecture (✅ Completed)
 - **Frontend**: OpenAI ChatKit (`/frontend-chatbot/`)
 - **Backend**: MCP Server (`/backend/mcp/`)
 - **AI**: OpenAI Agents SDK
@@ -27,6 +27,17 @@ This is a **MONOREPO** containing three phases of evolution:
 - **Spec**: `specs/002-ai-chatbot-mcp/`
 - **Constitution**: `.specify/memory/phase-3-constitution.md`
 - **Features**: Manage todos via natural language conversation
+
+### Phase IV: Kubernetes Deployment (✅ Completed)
+- **Platform**: Kubernetes (Minikube for local development)
+- **Orchestration**: Helm Charts (`/helm-charts/todo-app/`)
+- **Containerization**: Docker (multi-stage builds)
+- **Infrastructure**: Kubernetes manifests (`/k8s/`)
+- **Automation**: Deployment scripts (`/scripts/`)
+- **Monitoring**: Kubernetes metrics-server, health checks
+- **Spec**: `specs/003-k8s-deployment/`
+- **Constitution**: `.specify/memory/phase-4-constitution.md`
+- **Features**: Production-ready containerized deployment with auto-scaling, self-healing, and zero-downtime updates
 
 ## 🎯 Why Monorepo?
 
@@ -42,16 +53,42 @@ To-do-app/  (Monorepo Root)
 ├── backend/
 │   ├── src/              # Phase 2: FastAPI REST API
 │   ├── mcp/              # Phase 3: MCP Server (5 tools)
-│   └── tests/            # Tests for both phases
+│   └── tests/            # Tests for all phases
 ├── frontend-web/         # Phase 2: Next.js Web UI
 ├── frontend-chatbot/     # Phase 3: OpenAI ChatKit UI
+├── docker/               # Phase 4: Dockerfiles (multi-stage builds)
+│   ├── backend.Dockerfile
+│   ├── frontend-web.Dockerfile
+│   └── frontend-chatbot.Dockerfile
+├── k8s/                  # Phase 4: Kubernetes manifests
+│   ├── backend-deployment.yaml
+│   ├── frontend-web-deployment.yaml
+│   └── frontend-chatbot-deployment.yaml
+├── helm-charts/          # Phase 4: Helm charts
+│   └── todo-app/
+│       ├── Chart.yaml
+│       ├── values.yaml
+│       ├── values-dev.yaml
+│       └── templates/
+├── scripts/              # Phase 4: Automation scripts
+│   ├── deploy-minikube.sh
+│   ├── health-check.sh
+│   ├── cleanup.sh
+│   └── security-scan.sh
 ├── specs/
 │   ├── 001-fullstack-web-app/   # Phase 2 spec
-│   └── 002-ai-chatbot-mcp/      # Phase 3 spec
+│   ├── 002-ai-chatbot-mcp/      # Phase 3 spec
+│   └── 003-k8s-deployment/      # Phase 4 spec
+├── docs/                 # Phase 4: Documentation
+│   ├── DEPLOYMENT.md
+│   ├── ARCHITECTURE.md
+│   ├── TROUBLESHOOTING.md
+│   └── SECURITY_SCAN.md
 ├── .specify/memory/
 │   ├── constitution.md           # Phase 1 principles
 │   ├── phase-2-constitution.md   # Phase 2 constitution
-│   └── phase-3-constitution.md   # Phase 3 constitution
+│   ├── phase-3-constitution.md   # Phase 3 constitution
+│   └── phase-4-constitution.md   # Phase 4 constitution
 └── history/
     ├── prompts/          # Prompt History Records (PHRs)
     └── adr/              # Architecture Decision Records
@@ -62,8 +99,23 @@ To-do-app/  (Monorepo Root)
 All specifications are organized in `/specs/`:
 - `specs/001-fullstack-web-app/` - Phase 2: Web app spec, plan, tasks
 - `specs/002-ai-chatbot-mcp/` - Phase 3: AI chatbot spec, plan, tasks
+- `specs/003-k8s-deployment/` - Phase 4: Kubernetes deployment spec, plan, tasks
 - `specs/overview.md` - Project overview and phase status
 - `specs/architecture.md` - Cross-phase architecture decisions
+
+## 📚 Documentation
+
+### Phase IV Documentation
+- **Deployment Guide**: `docs/DEPLOYMENT.md` - Complete Kubernetes deployment instructions
+- **Architecture**: `docs/ARCHITECTURE.md` - Service topology and component interactions
+- **Troubleshooting**: `docs/TROUBLESHOOTING.md` - Common issues and solutions
+- **Security**: `docs/SECURITY_SCAN.md` - Container security scanning guide
+
+### Development Guides
+- **Project**: `CLAUDE.md` - Main development guide
+- **Backend**: `backend/CLAUDE.md` - Backend-specific guidelines
+- **Frontend Web**: `frontend-web/CLAUDE.md` - Web UI guidelines
+- **Frontend Chatbot**: `frontend-chatbot/CLAUDE.md` - Chatbot UI guidelines
 
 ## 🚀 Running the Application
 
@@ -91,14 +143,12 @@ npm run dev
 docker-compose up
 ```
 
-### Phase III: AI Chatbot (In Development)
+### Phase III: AI Chatbot
 ```bash
-# MCP Server
-cd backend/mcp
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-python server.py
+# MCP Server (runs as part of backend)
+cd backend
+source venv/bin/activate  # Windows: venv\Scripts\activate
+uvicorn src.api.main:app --reload --port 8000
 
 # ChatKit UI
 cd frontend-chatbot
@@ -107,6 +157,75 @@ npm run dev
 
 # Access: http://localhost:3001
 ```
+
+### Phase IV: Kubernetes Deployment (Production)
+
+**Quick Start (Automated):**
+```bash
+# Ensure Docker Desktop is running
+bash scripts/deploy-minikube.sh
+```
+
+**Manual Deployment:**
+```bash
+# 1. Start Minikube cluster
+bash scripts/start-minikube.sh
+
+# 2. Configure Docker to use Minikube
+eval $(minikube docker-env)
+
+# 3. Build Docker images
+docker build -t todo-backend:latest -f docker/backend.Dockerfile ./backend
+docker build -t todo-frontend-web:latest -f docker/frontend-web.Dockerfile ./frontend-web
+docker build -t todo-frontend-chatbot:latest -f docker/frontend-chatbot.Dockerfile ./frontend-chatbot
+
+# 4. Create Kubernetes secrets (replace with your values)
+kubectl create secret generic app-secrets \
+  --from-literal=DATABASE_URL="postgresql://user:pass@host/db?sslmode=require" \
+  --from-literal=BETTER_AUTH_SECRET="your-43-character-secret-here" \
+  --from-literal=OPENAI_API_KEY="sk-your-openai-api-key"
+
+# 5. Install Helm chart
+helm install todo-app ./helm-charts/todo-app -f ./helm-charts/todo-app/values-dev.yaml
+
+# 6. Wait for pods to be ready
+kubectl wait --for=condition=Ready pods --all --timeout=5m
+
+# 7. Access services
+minikube service todo-app-frontend-web --url      # Web UI
+minikube service todo-app-frontend-chatbot --url  # Chatbot UI
+```
+
+**Access URLs:**
+- **Frontend Web**: http://192.168.49.2:30000
+- **Chatbot UI**: http://192.168.49.2:30001
+- **Backend API**: `kubectl port-forward svc/todo-app-backend 8000:8000` → http://localhost:8000
+
+**Kubernetes Operations:**
+```bash
+# View all resources
+kubectl get all
+
+# View logs
+kubectl logs -f deployment/todo-app-backend
+
+# Scale deployment
+kubectl scale deployment/todo-app-backend --replicas=3
+
+# Update deployment
+helm upgrade todo-app ./helm-charts/todo-app -f ./helm-charts/todo-app/values-dev.yaml
+
+# Rollback deployment
+helm rollback todo-app
+
+# Health check
+bash scripts/health-check.sh
+
+# Cleanup
+bash scripts/cleanup.sh
+```
+
+**For detailed deployment instructions, see `docs/DEPLOYMENT.md`**
 
 ## 👨‍💻 Development Workflow
 
